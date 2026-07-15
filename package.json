@@ -39,8 +39,9 @@
     "artifactName": "Nebula-Setup-${version}.${ext}",
     "publish": [
       {
-        "provider": "generic",
-        "url": "https://moments.zadrypanka.xyz/uploads/storage"
+        "provider": "github",
+        "owner": "mushraisin",
+        "repo": "Nebula"
       }
     ],
     "win": {

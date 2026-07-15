@@ -1,6 +1,8 @@
-// Launcher self-update via electron-updater (generic provider on your site).
-// Same idea as pack updates: checks the hosted latest.yml, downloads a new
-// version in the background, notifies the renderer, and installs on restart.
+// Launcher self-update via electron-updater. The feed is the public GitHub
+// Releases of mushraisin/Nebula (configured in package.json build.publish and
+// baked into app-update.yml at build time). Checks the release's latest.yml,
+// downloads a new version in the background, notifies the renderer, and
+// installs on restart.
 const { app } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const ipc = require('./ipc');
