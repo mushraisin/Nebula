@@ -136,6 +136,32 @@ data/
 Electron, minecraft-launcher-core (Fabric/Quilt/Vanilla), @xmcl/core + @xmcl/installer
 (Forge/NeoForge), msmc (Microsoft auth), @xmcl/unzip, adm-zip, Node native http/crypto.
 
+## Privacy
+
+**Nebula does not collect, track or transmit any personal data to its developer.** There is
+no telemetry, no analytics and no crash reporting. Your account, settings and installed
+packs are stored **only on your own machine**, under `%APPDATA%/Nebula/config.json`.
+Microsoft login tokens never leave your device — they are used solely to authenticate you
+with Mojang/Microsoft when launching the game.
+
+The launcher will not transfer any information to other networked systems unless
+specifically requested by the user or the person installing or operating it. To perform the
+actions you ask for, it contacts:
+
+| Service | When | What is sent |
+|---|---|---|
+| Microsoft / Xbox / Mojang | You choose "Sign in with Microsoft", or launch the game | OAuth login (handled by Microsoft's own window) and your session token |
+| Adoptium (Temurin) | A pack needs a Java runtime you don't have | A plain download request |
+| Modrinth | You search for or install mods | Your search query and the mod id |
+| Modpack repository | On startup and when installing/updating a pack | A request for `packs.json` and the `.mrpack` file. As with any web server, the host sees your IP address |
+| mc-heads.net (fallback: crafatar.com) | You are signed in with a licensed account | Your Minecraft UUID, to render your skin head |
+| GitHub | Update checks | A request for the latest release info |
+| Discord | Discord is running | The pack name, sent to your **local** Discord client so it can show your status. Disabled if Discord is closed |
+| YouTube / image hosts | You open the "Media" tab of a pack that has media | A standard embed request |
+
+Nothing above is initiated on the developer's behalf — each request exists only to install,
+update or launch what you asked for.
+
 ## Code signing policy
 
 Free code signing for Windows binaries is provided by [SignPath.io](https://signpath.io),
@@ -149,9 +175,7 @@ with a certificate issued by the [SignPath Foundation](https://signpath.org).
   reviewed and approved manually before the artifact is signed.
 - **Privacy**: this program will not transfer any information to other networked systems
   unless specifically requested by the user or the person installing or operating it.
-  It contacts Mojang/Microsoft (authentication), Adoptium (Java runtime), Modrinth (mod
-  downloads) and the configured modpack repository solely to perform the actions the user
-  asked for.
+  See [Privacy](#privacy) for the full statement.
 
 ## License
 
