@@ -136,6 +136,23 @@ data/
 Electron, minecraft-launcher-core (Fabric/Quilt/Vanilla), @xmcl/core + @xmcl/installer
 (Forge/NeoForge), msmc (Microsoft auth), @xmcl/unzip, adm-zip, Node native http/crypto.
 
+## Code signing policy
+
+Free code signing for Windows binaries is provided by [SignPath.io](https://signpath.io),
+with a certificate issued by the [SignPath Foundation](https://signpath.org).
+
+- **Roles**
+  - *Author / Reviewer / Approver*: [mushbarry](https://github.com/mushraisin) (project owner
+    and sole maintainer).
+- **Process**: releases are built from this public repository by
+  [GitHub Actions](.github/workflows/build.yml) on a tagged commit. Every signing request is
+  reviewed and approved manually before the artifact is signed.
+- **Privacy**: this program will not transfer any information to other networked systems
+  unless specifically requested by the user or the person installing or operating it.
+  It contacts Mojang/Microsoft (authentication), Adoptium (Java runtime), Modrinth (mod
+  downloads) and the configured modpack repository solely to perform the actions the user
+  asked for.
+
 ## License
 
 [MIT](LICENSE) © mushbarry
