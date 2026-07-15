@@ -1,0 +1,55 @@
+name: Build Windows installer
+
+# Builds the .exe on a public CI runner (required for SignPath Foundation's free
+# OSS code signing: the binary must be provably built from this public source).
+# Push a tag like v2.4.1 -> installer is built and attached to a GitHub Release.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {} # allows manual runs from the Actions tab (no tag needed)
+
+permissions:
+  contents: write # needed to create the Release and upload the installer
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build installer
+        # --publish never: electron-builder must not try to push to the `generic`
+        # provider (it is download-only); the Release step below handles upload.
+        run: npx electron-builder --win --publish never
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nebula-windows
+          path: |
+            release/Nebula-Setup-*.exe
+            release/Nebula-Setup-*.exe.blockmap
+            release/latest.yml
+          if-no-files-found: error
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          generate_release_notes: true
+          files: |
+            release/Nebula-Setup-*.exe
+            release/Nebula-Setup-*.exe.blockmap
+            release/latest.yml
