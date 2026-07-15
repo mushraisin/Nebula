@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com;" />
+  <title>Nebula</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Organic animated backdrop (liquid-glass gradient blobs + falling leaves) -->
+  <div class="backdrop" id="backdrop" aria-hidden="true">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+    <div class="blob blob-c"></div>
+    <div class="blob blob-d"></div>
+    <div class="leaves" id="leaves"></div>
+  </div>
+
+  <!-- Title bar (drag) -->
+  <header class="titlebar">
+    <div class="tb-brand" id="brand-home" title="На головну">
+      <span class="tb-logo">
+        <svg viewBox="0 0 32 32" width="26" height="26">
+          <path d="M26 5 C13 5 6 12 6 23 C6 25 7 27 7 27 C7 27 9 20 16 16 C11 21 9 25 9 27 C18 29 27 22 27 10 C27 8 26 5 26 5 Z" fill="url(#lg)"/>
+          <path d="M9 27 C9 25 11 21 16 16" fill="none" stroke="rgba(6,35,26,.55)" stroke-width="1.2" stroke-linecap="round"/>
+          <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--accent-hover)"/><stop offset="100%" stop-color="var(--accent)"/></linearGradient></defs>
+        </svg>
+      </span>
+      <span class="tb-name">NEBULA</span>
+    </div>
+    <div class="tb-drag"></div>
+
+    <div class="account-wrap">
+      <button class="account" id="account">
+        <span class="avatar" id="avatar"></span>
+        <span class="account-text">
+          <span class="account-name" id="acc-name">Не увійдено</span>
+          <span class="account-sub" id="acc-sub">Увійти</span>
+        </span>
+        <svg class="acc-caret" width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5 L5 6.5 L8 3.5" stroke="currentColor" stroke-width="1.4" fill="none"/></svg>
+      </button>
+      <div class="account-menu hidden" id="account-menu">
+        <div class="menu-label">Акаунти</div>
+        <div id="account-list"></div>
+        <div class="menu-sep"></div>
+        <button class="menu-item" id="menu-add">+ Додати акаунт</button>
+        <button class="menu-item danger" id="menu-logout">Вийти</button>
+      </div>
+    </div>
+
+    <div class="win-controls">
+      <button class="win-btn" id="tb-min" title="Згорнути"><svg width="10" height="10" viewBox="0 0 10 10"><rect y="4.5" width="10" height="1"/></svg></button>
+      <button class="win-btn danger" id="tb-close" title="Закрити"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor"/></svg></button>
+    </div>
+  </header>
+
+  <!-- ============ HOME ============ -->
+  <main class="home" id="home">
+    <div class="home-top">
+      <div class="home-head">
+        <h1>Твої збірки</h1>
+        <p class="home-sub" id="home-sub">Обери світ і поринай у гру</p>
+      </div>
+      <div class="home-tools">
+        <button class="tool-btn" id="check-updates" title="Перевірити оновлення">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 8a6 6 0 1 1-1.8-4.3M14 2v3h-3"/></svg>
+          <span id="upd-label">Оновлення</span><span class="pill hidden" id="upd-badge">0</span>
+        </button>
+        <button class="tool-btn hidden" id="admin-btn" title="Керування збірками">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h8"/></svg>
+          Адмін
+        </button>
+        <button class="tool-btn" id="new-profile" title="Створити профіль">+ Профіль</button>
+        <button class="tool-btn accent" id="add-pack" title="Додати збірку">+ Збірка</button>
+      </div>
+    </div>
+
+    <!-- Carousel of packs (3 visible) -->
+    <div class="stage" id="stage">
+      <button class="car-nav prev" id="car-prev" title="Назад"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.5 4 L6.5 10 L12.5 16"/></svg></button>
+      <div class="cards" id="pack-cards"></div>
+      <button class="car-nav next" id="car-next" title="Далі"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M7.5 4 L13.5 10 L7.5 16"/></svg></button>
+    </div>
+    <div class="dots" id="car-dots"></div>
+
+    <!-- Empty state -->
+    <section class="empty hidden" id="empty">
+      <div class="empty-mark"></div>
+      <h2>Збірки завантажуються...</h2>
+      <p>Доступні збірки підтягуються автоматично. Якщо порожньо - перевір інтернет або додай вручну.</p>
+      <button class="btn-primary lg" id="empty-add">Додати вручну</button>
+    </section>
+
+    <!-- Bottom action bar: PLAY + settings gear -->
+    <div class="home-bar" id="home-bar">
+      <div class="progress hidden js-progress" id="home-progress">
+        <div class="progress-top"><span class="js-progress-status">-</span><span class="js-progress-pct"></span></div>
+        <div class="progress-track"><div class="progress-bar js-progress-fill"></div></div>
+      </div>
+      <div class="home-bar-row">
+        <button class="btn-play-lg" id="home-play">
+          <svg width="20" height="20" viewBox="0 0 16 16"><path d="M3 2 L13 8 L3 14 Z"/></svg>
+          <span id="home-play-label">Грати</span>
+        </button>
+        <button class="gear-btn" id="open-settings" title="Налаштування">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <circle cx="12" cy="12" r="3.2"/>
+            <path d="M12 2.5v2.4M12 19.1v2.4M21.5 12h-2.4M4.9 12H2.5M18.7 5.3l-1.7 1.7M7 17l-1.7 1.7M18.7 18.7L17 17M7 7 5.3 5.3"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ DETAIL (animated overlay) ============ -->
+  <div class="detail-overlay" id="detail-overlay" aria-hidden="true">
+    <div class="dv-scroll" id="dv-scroll">
+      <section class="dv-hero">
+        <div class="dv-bg" id="dv-bg"></div>
+        <div class="dv-veil"></div>
+        <button class="dv-back" id="dv-back" title="Назад">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.5 4 L6.5 10 L12.5 16"/></svg>
+          <span>Бібліотека</span>
+        </button>
+        <div class="dv-inner">
+          <div class="dv-head">
+            <div class="dv-icon" id="dv-icon"></div>
+            <div class="dv-titles">
+              <h1 id="dv-name">-</h1>
+              <div class="dv-tags" id="dv-tags"></div>
+            </div>
+          </div>
+          <div class="dv-actions">
+            <button class="btn-play" id="play-btn">
+              <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 2 L13 8 L3 14 Z"/></svg>
+              <span id="play-label">Грати</span>
+            </button>
+            <button class="btn-ghost hidden" id="open-folder">Папка</button>
+            <button class="btn-ghost" id="log-toggle">Лог</button>
+            <button class="btn-ghost danger hidden" id="remove-pack">Видалити</button>
+          </div>
+          <div class="progress hidden js-progress" id="detail-progress">
+            <div class="progress-top"><span class="js-progress-status">-</span><span class="js-progress-pct"></span></div>
+            <div class="progress-track"><div class="progress-bar js-progress-fill"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <nav class="tabs">
+        <button class="tab active" data-pane="pane-overview">Огляд</button>
+        <button class="tab" data-pane="pane-mods">Моди</button>
+        <button class="tab" data-pane="pane-media">Медіа</button>
+        <button class="tab" data-pane="pane-changelog">Зміни</button>
+      </nav>
+
+      <section class="pane active" id="pane-overview">
+        <div class="prose" id="ov-desc"></div>
+        <div class="spec-grid" id="ov-specs"></div>
+      </section>
+      <section class="pane" id="pane-mods">
+        <div class="muted-note hidden" id="mods-locked">Спочатку встанови цю збірку, щоб керувати модами.</div>
+        <div id="mods-ui">
+          <div class="mods-bar">
+            <input type="text" id="mod-query" placeholder="Пошук модів на Modrinth..." />
+            <button class="btn-primary" id="mod-search-btn">Пошук</button>
+            <button class="btn-ghost" id="mods-folder">Папка</button>
+          </div>
+          <div class="mod-status muted-note hidden" id="mod-status"></div>
+          <div class="mod-results" id="mod-results"></div>
+          <div class="mods-installed-head">Встановлені моди <span id="mods-count" class="hint"></span></div>
+          <div class="mods-installed" id="mods-installed"></div>
+        </div>
+      </section>
+      <section class="pane" id="pane-media">
+        <div class="media-grid" id="media-grid"></div>
+      </section>
+      <section class="pane" id="pane-changelog">
+        <div class="prose" id="cl-body"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Console -->
+  <section class="console hidden" id="console">
+    <div class="console-head">
+      <span>Лог гри</span>
+      <button class="win-btn" id="console-close"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor"/></svg></button>
+    </div>
+    <pre class="console-body" id="console-body"></pre>
+  </section>
+
+  <!-- Modal: add pack -->
+  <div class="scrim hidden" id="add-modal">
+    <div class="sheet">
+      <div class="sheet-head"><h2>Додати збірку</h2><button class="win-btn" data-close-modal="add-modal"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor"/></svg></button></div>
+      <div class="segmented">
+        <button class="seg active" data-tab="tab-repo">Репозиторій</button>
+        <button class="seg" data-tab="tab-url">Посилання</button>
+        <button class="seg" data-tab="tab-file">Файл</button>
+      </div>
+      <div class="panel active" id="tab-repo">
+        <div class="field"><label>URL репозиторію (JSON-маніфест)</label>
+          <div class="row"><input type="text" id="repo-url" placeholder="https://.../packs.json" /><button class="btn-primary" id="repo-add">Додати</button></div>
+        </div>
+        <div class="repo-packs" id="repo-packs"><div class="hint">Додай репозиторій, щоб побачити збірки.</div></div>
+      </div>
+      <div class="panel" id="tab-url">
+        <div class="field"><label>Пряме посилання на .mrpack</label><input type="text" id="url-input" placeholder="https://.../mypack.mrpack" /></div>
+        <div class="field"><label>Назва (необов'язково)</label><input type="text" id="url-name" placeholder="Моя збірка" /></div>
+        <button class="btn-primary lg" id="url-install">Встановити</button>
+      </div>
+      <div class="panel" id="tab-file">
+        <p class="hint">Обери локальний файл .mrpack на диску.</p>
+        <button class="btn-primary lg" id="file-install">Обрати файл...</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: settings -->
+  <div class="scrim hidden" id="settings-modal">
+    <div class="sheet wide settings-sheet">
+      <div class="sheet-head"><h2>Налаштування</h2><button class="win-btn" data-close-modal="settings-modal"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor"/></svg></button></div>
+      <div class="settings-layout">
+        <nav class="set-nav" id="set-nav">
+          <button class="set-tab active" data-set="set-game">🎮 Гра</button>
+          <button class="set-tab" data-set="set-look">🎨 Вигляд</button>
+          <button class="set-tab" data-set="set-repo">🗂 Репозиторії</button>
+          <button class="set-tab" data-set="set-admin">🔑 Адмін</button>
+        </nav>
+        <div class="set-body">
+          <section class="set-pane active" id="set-game">
+            <div class="set-card">
+              <div class="set-card-title">Пам'ять</div>
+              <div class="field"><label>Мінімум <b id="mem-min-val"></b> МБ</label><input type="range" id="mem-min" min="1024" max="16384" step="512" /></div>
+              <div class="field"><label>Максимум <b id="mem-max-val"></b> МБ</label><input type="range" id="mem-max" min="1024" max="32768" step="512" /></div>
+            </div>
+            <div class="set-card">
+              <div class="field"><label>Додаткові аргументи JVM</label><input type="text" id="java-args" placeholder="-XX:+UseG1GC ..." /></div>
+              <label class="check"><input type="checkbox" id="close-launch" /> Згортати вікно після запуску</label>
+              <div class="field"><label>Папка даних</label><input type="text" id="base-dir" readonly /></div>
+            </div>
+          </section>
+
+          <section class="set-pane" id="set-look">
+            <div class="set-card">
+              <div class="set-card-title">Ефекти</div>
+              <label class="switch-row"><span class="switch-txt">Liquid Glass<span class="switch-sub">Скляні напівпрозорі панелі з розмиттям. Вимкни для суцільних матових - легше для слабких ПК.</span></span><span class="switch" id="glass-switch"></span></label>
+            </div>
+            <div class="set-card">
+              <div class="set-card-title">Кольори теми</div>
+              <div class="row2">
+                <div class="field"><label>Колір фону</label><div class="color-row"><input type="color" id="theme-bg" /><span id="theme-bg-hex" class="hex"></span></div></div>
+                <div class="field"><label>Акцент</label><div class="color-row"><input type="color" id="theme-accent" /><span id="theme-accent-hex" class="hex"></span></div></div>
+              </div>
+              <div class="field"><label>Пресети</label><div class="presets" id="theme-presets"></div></div>
+              <button class="btn-soft" id="theme-reset">Скинути до типового</button>
+            </div>
+          </section>
+
+          <section class="set-pane" id="set-repo">
+            <div class="set-card">
+              <div class="set-card-title">Джерела збірок</div>
+              <div id="repo-manage" class="repo-manage"></div>
+            </div>
+          </section>
+
+          <section class="set-pane" id="set-admin">
+            <div class="set-card">
+              <div class="set-card-title">Керування збірками на сайті</div>
+              <div class="field"><label>Адмін-API</label><input type="text" id="admin-base" placeholder="https://moments.zadrypanka.xyz/launcher" /></div>
+              <div class="field"><label>Адмін-токен</label>
+                <div class="row"><input type="password" id="admin-token" placeholder="LAUNCHER_ADMIN_TOKEN" /><button class="btn-soft" id="admin-verify-btn">Перевірити</button></div>
+                <span class="hint" id="admin-status"></span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+      <button class="btn-primary lg block" id="settings-save">Зберегти</button>
+    </div>
+  </div>
+
+  <!-- Modal: login -->
+  <div class="scrim hidden" id="login-modal">
+    <div class="sheet narrow">
+      <div class="sheet-head"><h2>Вхід</h2><button class="win-btn" data-close-modal="login-modal"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor"/></svg></button></div>
+      <button class="btn-primary lg block" id="login-ms">Увійти через Microsoft</button>
+      <p class="hint center">Ліцензійний акаунт - доступ до онлайн-серверів.</p>
+      <div class="or"><span>або</span></div>
+      <div class="field"><label>Грати без акаунту (піратка) - вкажи нік</label><input type="text" id="offline-nick" placeholder="Нік (3-16, латиниця)" maxlength="16" /></div>
+      <button class="btn-soft lg block" id="login-offline">Увійти за ніком</button>
+      <p class="hint center small">Офлайн-режим: преміум / online-mode сервери недоступні.</p>
+    </div>
+  </div>
+
+  <!-- Modal: admin -->
+  <div class="scrim hidden" id="admin-modal">
+    <div class="sheet wide">
+      <div class="sheet-head"><h2>Керування збірками</h2><button class="win-btn" data-close-modal="admin-modal"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor"/></svg></button></div>
+      <div class="repo-packs" id="admin-list"></div>
+      <div class="or"><span>додати / редагувати</span></div>
+      <div class="field"><label>Назва</label><input type="text" id="af-name" placeholder="Моя збірка" /></div>
+      <div class="row2">
+        <div class="field"><label>ID (авто з назви)</label><input type="text" id="af-id" placeholder="my-pack" /></div>
+        <div class="field"><label>Версія</label><input type="text" id="af-version" placeholder="1.0" /></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Версія MC</label><input type="text" id="af-gv" placeholder="1.21.1" /></div>
+        <div class="field"><label>Лоадер</label>
+          <select id="af-loader"><option value="">-</option><option value="vanilla">vanilla</option><option value="fabric">fabric</option><option value="quilt">quilt</option><option value="neoforge">neoforge</option><option value="forge">forge</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Пряме посилання на .mrpack</label><input type="text" id="af-mrpack" placeholder="https://.../pack.mrpack" /></div>
+      <div class="field"><label>Короткий опис (рядок)</label><input type="text" id="af-summary" /></div>
+      <div class="field"><label>Іконка URL (необов'язково)</label><input type="text" id="af-icon" /></div>
+      <div class="field"><label>Повний опис (вкладка «Огляд»)</label><textarea id="af-description" rows="4" placeholder="Розкажи про збірку..."></textarea></div>
+      <div class="field"><label>Медіа - YouTube / Imgur / картинки, по одному посиланню на рядок</label><textarea id="af-media" rows="3" placeholder="https://youtu.be/...&#10;https://i.imgur.com/....png"></textarea></div>
+      <div class="field"><label>Changelog (вкладка «Зміни»)</label><textarea id="af-changelog" rows="5" placeholder="## 1.1&#10;- виправлено X&#10;- додано Y&#10;&#10;## 1.0&#10;- перший реліз"></textarea></div>
+      <div class="row"><button class="btn-primary lg" id="admin-save-btn">Зберегти</button><button class="btn-soft" id="admin-clear-btn">Очистити форму</button></div>
+    </div>
+  </div>
+
+  <!-- Modal: create profile -->
+  <div class="scrim hidden" id="profile-modal">
+    <div class="sheet">
+      <div class="sheet-head"><h2>Створити профіль</h2><button class="win-btn" data-close-modal="profile-modal"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor"/></svg></button></div>
+      <div class="field"><label>Назва</label><input type="text" id="pf-name" placeholder="Мій профіль" /></div>
+      <div class="row2">
+        <div class="field"><label>Версія Minecraft</label><select id="pf-mc"></select></div>
+        <div class="field"><label>Лоадер</label>
+          <select id="pf-loader">
+            <option value="vanilla">Vanilla</option>
+            <option value="fabric">Fabric</option>
+            <option value="quilt">Quilt</option>
+            <option value="neoforge">NeoForge</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint">Лоадер встановиться автоматично (остання версія). Моди додаси у вкладці «Моди».</p>
+      <button class="btn-primary lg block" id="pf-create">Створити</button>
+    </div>
+  </div>
+
+  <div class="toasts" id="toast-wrap"></div>
+  <script src="renderer.js"></script>
+</body>
+</html>

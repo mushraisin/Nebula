@@ -1,0 +1,61 @@
+{
+  "name": "nebula-launcher",
+  "version": "2.4.0",
+  "description": "Nebula - лаунчер для Minecraft-збірок",
+  "main": "src/main/main.js",
+  "author": "mushbarry",
+  "homepage": "https://moments.zadrypanka.xyz",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "dist": "electron-builder",
+    "pack": "electron-builder --dir"
+  },
+  "dependencies": {
+    "@xmcl/core": "^2.15.1",
+    "@xmcl/installer": "^5.4.0",
+    "adm-zip": "^0.5.16",
+    "electron-updater": "^6.8.9",
+    "minecraft-launcher-core": "^3.18.2",
+    "msmc": "^4.1.0"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "png-to-ico": "^3.0.2"
+  },
+  "build": {
+    "appId": "com.nebula.launcher",
+    "productName": "Nebula",
+    "copyright": "Copyright © 2026 mushbarry",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "artifactName": "Nebula-Setup-${version}.${ext}",
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://moments.zadrypanka.xyz/uploads/storage"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico",
+      "signtoolOptions": {
+        "publisherName": "mushbarry"
+      }
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "shortcutName": "Nebula"
+    }
+  }
+}
