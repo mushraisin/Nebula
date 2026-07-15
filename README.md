@@ -1,42 +1,65 @@
 # Nebula Launcher
 
-Гарний Electron-лаунчер для власних Minecraft-збірок у форматі **Modrinth `.mrpack`**.
-Збірки підтягуються **автоматично** з вбудованого репозиторію - будь-хто, хто відкрив
-лаунчер, одразу бачить їх і встановлює **в один клік**.
+A custom Electron launcher for Minecraft modpacks in the **Modrinth `.mrpack`** format.
+Packs are pulled **automatically** from a built-in repository, so anyone who opens the
+launcher sees them right away and installs them in one click.
 
-## Можливості
+> **Note — who this is for**
+>
+> Nebula was built **primarily for the [3adrypanka](https://moments.zadrypanka.xyz) Discord
+> community**, and it ships pointing at that server's modpack repository by default.
+>
+> It is open source, so anyone else is welcome to use it: you can **edit or remove the
+> bundled packs and point the launcher at your own source** (see
+> [Using your own repository](#using-your-own-repository)). No part of it is tied to
+> 3adrypanka beyond the default repository URL.
 
-- **Автокаталог збірок**: вбудований репозиторій підтягується сам, доступні збірки видно
-  прямо в головній сітці. Кнопка **«Завантажити і грати»** ставить і запускає в один клік.
-- **Два способи входу**:
-  - **Microsoft / Xbox** (msmc) - ліцензійний акаунт, онлайн-сервери.
-  - **Офлайн / піратка** - просто вкажіть нік (offline-UUID як на серверах з online-mode=false).
-  Сесія зберігається між запусками.
-- **Встановлення `.mrpack`**: завантаження, перевірка sha1-хешів, overrides.
-- **Авто-Java**: потрібний JRE (8/17/21...) визначається за версією MC і тягнеться з Adoptium (Temurin).
-- **Усі лоадери**: Vanilla, Fabric, Quilt, Forge, NeoForge.
-  - Fabric/Quilt/Vanilla - через minecraft-launcher-core.
-  - Forge/NeoForge - через офіційний installer (@xmcl) з автоматичним запуском процесорів.
-- **Перевірка версій + оновлення**: якщо у репозиторії з'явилась нова версія, лаунчер сам
-  показує бейдж «оновлення» і пропонує **Оновити**.
+## Features
 
-## Запуск у розробці
+- **Automatic pack catalog** — the built-in repository is fetched on startup; available
+  packs appear on the home screen. Click a card to select it, **Детально / Details** for
+  the full page (media, description, changelog, mods).
+- **Two ways to sign in**
+  - **Microsoft / Xbox** (msmc) — licensed account, online servers, real skin head shown.
+  - **Offline** — just pick a nickname (offline-UUID, as on `online-mode=false` servers).
+  - Sessions persist between launches; multiple accounts can be saved and switched.
+- **Incremental pack updates** — existing files are verified (sha1 for downloads, crc32 for
+  overrides) and only missing/changed files are fetched. Files dropped from a pack are
+  removed; **mods you added yourself are kept**.
+- **Fast downloads** — parallel file downloads, multi-connection (segmented) transfer for
+  large archives, and keep-alive connections.
+- **Auto-Java** — the required JRE (8/17/21…) is detected from the MC version and fetched
+  from Adoptium (Temurin).
+- **All loaders** — Vanilla, Fabric, Quilt, Forge, NeoForge.
+  - Fabric/Quilt/Vanilla via `minecraft-launcher-core`.
+  - Forge/NeoForge via the official installer (`@xmcl`), processors run automatically.
+- **Mod manager** — search Modrinth, install (with dependencies), enable/disable, remove.
+- **Custom profiles** — create a plain Vanilla/Fabric/Quilt/NeoForge instance and add mods.
+- **Discord Rich Presence** — shows *Playing Nebula* plus the pack name. No setup needed.
+- **Theming** — customizable background/accent colours with presets, plus an optional
+  **Liquid Glass** mode (frosted panels; off by default, easier on weak PCs).
+- **Self-update** — the launcher updates itself from GitHub Releases.
+
+## Running from source
 
 ```bash
 npm install
-npm start          # або: npm run dev  (з DevTools)
+npm start          # or: npm run dev  (with DevTools)
 ```
 
-## Збірка .exe (Windows installer)
+## Building the installer
 
 ```bash
-npm run dist       # результат у папці release/
+npm run dist       # output in release/
 ```
 
-## Хостинг збірок (сайт + бот)
+Releases are normally built by CI: push a tag (`v2.4.1`) and the
+[workflow](.github/workflows/build.yml) builds the Windows installer and attaches it to a
+GitHub Release. The launcher's auto-updater reads that release feed.
 
-Збірки роздаються з власного сайту (Express-бекенд бота у WSL, публічний через
-Cloudflare-тунель `moments.zadrypanka.xyz`). Лаунчер вшитий на маніфест:
+## Using your own repository
+
+The launcher ships with a built-in manifest URL:
 
 ```js
 // src/main/repo.js
@@ -45,50 +68,74 @@ const BUILTIN_REPOS = [
 ];
 ```
 
-**API бота** (`bot/src/web/routes/launcher.js`, таблиця `launcher_packs`):
-- `GET /launcher/packs.json` - публічний маніфест (лаунчер читає, порівнює версії).
-- `GET /launcher/admin/verify` - перевірка токена.
-- `POST /launcher/admin/packs` - створити / оновити пак (upsert по `id`).
-- `DELETE /launcher/admin/packs/:id` - видалити.
+Replace it with your own `packs.json` (or remove it entirely and let users add sources
+themselves via **Add pack → Repository**). The manifest is a plain JSON list of packs:
 
-Адмін-маршрути захищені заголовком `Authorization: Bearer <LAUNCHER_ADMIN_TOKEN>`
-(токен у `bot/.env`).
+```json
+{
+  "packs": [
+    {
+      "id": "my-pack",
+      "name": "My Pack",
+      "version": "1.0",
+      "gameVersion": "1.21.1",
+      "loader": "neoforge",
+      "mrpack": "https://example.com/files/my-pack.mrpack",
+      "summary": "Short one-line description",
+      "description": "Full description for the Overview tab",
+      "icon": "https://example.com/icon.png",
+      "media": ["https://youtu.be/…", "https://i.imgur.com/….png"],
+      "changelog": "## 1.0\n- first release"
+    }
+  ]
+}
+```
 
-## Адмін-панель у лаунчері
+Bumping a pack's `version` in the manifest is what triggers the update badge for users.
 
-Налаштування → впиши **Адмін-API** (`https://moments.zadrypanka.xyz/launcher`) і
-**Адмін-токен** → «Перевірити». Зʼявиться кнопка **Адмін** у бібліотеці:
-додавай / редагуй / видаляй збірки (пряме посилання на `.mrpack`, версія, MC-версія,
-лоадер). Зміни одразу бачать усі. Оновив `.mrpack` на сайті → підняв `версію` в панелі →
-у користувачів спрацьовує **автооновлення** («Оновити і грати»).
+Users can also add packs without any repository at all — **Add pack** accepts a direct
+`.mrpack` URL or a local file.
 
-Пряме посилання на файл: заливаєш `.mrpack` на сайт → URL виду
-`https://moments.zadrypanka.xyz/uploads/modpack/files/<файл>.mrpack` (пробіли → `%20`).
+## Optional: hosted admin API
 
-## Додати збірку вручну (локально, без адмінки)
+The 3adrypanka deployment serves packs from its own site and exposes a small CRUD API so
+packs can be managed from inside the launcher (Settings → Admin API + token → an **Admin**
+button appears). This is entirely optional — the launcher works fine against any static
+`packs.json`.
 
-Кнопка **Додати вручну**: свій `packs.json` (репозиторій), пряме посилання на `.mrpack`,
-або локальний файл з диска.
+- `GET /launcher/packs.json` — public manifest.
+- `GET /launcher/admin/verify` — token check.
+- `POST /launcher/admin/packs` — create/update a pack (upsert by `id`).
+- `DELETE /launcher/admin/packs/:id` — delete.
 
-## Структура даних
+Admin routes are protected by `Authorization: Bearer <LAUNCHER_ADMIN_TOKEN>`. The token is
+stored only in the user's local config — it is never bundled into the app.
 
-Все зберігається у `%APPDATA%/nebula-launcher/`:
+## Data layout
+
+Everything lives under `%APPDATA%/Nebula/`:
 
 ```
-config.json          # акаунт, налаштування, встановлені збірки
+config.json          # accounts, settings, installed packs
 data/
-  shared/            # versions, libraries, assets (спільні)
-  instances/<id>/    # mods, config, saves кожної збірки
-  java/<major>/      # авто-встановлені JRE
+  shared/            # versions, libraries, assets (shared between packs)
+  instances/<id>/    # mods, config, saves for each pack
+  java/<major>/      # auto-installed JREs
 ```
 
-## Обмеження / нотатки
+## Notes / limitations
 
-- **Forge/NeoForge**: перша установка запускає офіційний installer (процесори) - це може
-  зайняти кілька хвилин і вимагає інтернету та Java (ставиться автоматично).
-- NeoForge для MC 1.20.1 використовує старе `forge`-іменування - обробляється автоматично.
+- **Forge/NeoForge**: the first install runs the official installer (processors) — this can
+  take a few minutes and needs internet and Java (installed automatically).
+- NeoForge for MC 1.20.1 uses the older `forge` naming — handled automatically.
+- The Windows build is **not code-signed**, so SmartScreen may warn about an unknown
+  publisher on first run.
 
-## Стек
+## Stack
 
 Electron, minecraft-launcher-core (Fabric/Quilt/Vanilla), @xmcl/core + @xmcl/installer
-(Forge/NeoForge), msmc (Microsoft auth), adm-zip, Node native fetch/crypto.
+(Forge/NeoForge), msmc (Microsoft auth), @xmcl/unzip, adm-zip, Node native http/crypto.
+
+## License
+
+[MIT](LICENSE) © mushbarry
