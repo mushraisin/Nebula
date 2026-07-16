@@ -53,6 +53,7 @@ async function fetchRepo(url) {
     description: p.description || '',
     media: Array.isArray(p.media) ? p.media : [],
     changelog: p.changelog || '',
+    featured: !!p.featured,
     mrpack: p.mrpack,
     repoUrl: url,
     repoName: data.name || url

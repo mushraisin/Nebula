@@ -183,6 +183,27 @@ svg { display: block; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--glass-3); border: 1px solid var(--glass-brd); cursor: pointer; transition: background .15s, width .2s; }
 .dot.active { width: 22px; border-radius: 999px; background: var(--accent); border-color: transparent; }
 
+/* Featured ("main") pack hero */
+.featured-hero { position: relative; height: 172px; flex-shrink: 0; border-radius: var(--radius); overflow: hidden; cursor: pointer; background: var(--surface); border: 1px solid var(--glass-brd); box-shadow: var(--shadow-sm), var(--glass-hi); transition: transform .2s cubic-bezier(.2,.7,.3,1), border-color .2s, box-shadow .2s; animation: cardIn .4s cubic-bezier(.2,.7,.3,1) backwards; }
+.featured-hero:hover { transform: translateY(-3px); box-shadow: 0 22px 50px rgba(0,0,0,.5), var(--glass-hi); }
+.featured-hero.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 20px 46px rgba(0,0,0,.45), var(--glow); }
+.fh-bg { position: absolute; inset: 0; background: var(--surface-3) center/cover no-repeat; transform: scale(1.04); transition: transform .5s cubic-bezier(.2,.7,.3,1); }
+.featured-hero:hover .fh-bg { transform: scale(1.09); }
+.fh-veil { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(15,21,18,.94) 0%, rgba(15,21,18,.74) 46%, rgba(15,21,18,.32) 100%); }
+.fh-badge { position: absolute; top: 14px; left: 16px; z-index: 2; padding: 5px 12px; border-radius: 999px; font-size: 11.5px; font-weight: 800; color: #06231a; background: var(--accent); box-shadow: 0 4px 14px var(--accent-soft); }
+.fh-inner { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; padding: 18px 24px; }
+.fh-name { font-size: 27px; font-weight: 800; line-height: 1.05; padding-left: 2px; margin-left: -2px; }
+.fh-sum { font-size: 13px; color: #c4c8d6; max-width: 640px; line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.fh-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.rest-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
+
+/* Compact carousel when a featured hero is present (fixed window height) */
+.home.has-featured { gap: 14px; }
+.home.has-featured .stage { max-height: 250px; }
+.home.has-featured .card { height: 230px; min-height: 0; max-height: 230px; }
+.home.has-featured .card-img { height: 44%; }
+.home.has-featured .card-desc { display: none; }
+
 /* Empty */
 .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; text-align: center; padding: 24px; }
 .empty-mark { width: 76px; height: 76px; border-radius: 26px; background: linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow: 0 12px 44px var(--accent-soft); animation: floaty 4s ease-in-out infinite; }

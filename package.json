@@ -1,6 +1,6 @@
 {
   "name": "nebula-launcher",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Nebula - лаунчер для Minecraft-збірок",
   "main": "src/main/main.js",
   "author": "mushbarry",

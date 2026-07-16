@@ -115,12 +115,18 @@ document.addEventListener('keydown', (e) => {
   }
 });
 function moveSelection(delta) {
-  if (!state.catalog.length) return;
-  let idx = state.catalog.findIndex((e) => e.id === state.selectedId);
+  const f = featuredEntry();
+  const rest = carouselList();
+  const order = f ? [f, ...rest] : rest; // featured first, then carousel
+  if (!order.length) return;
+  let idx = order.findIndex((e) => e.id === state.selectedId);
   if (idx < 0) idx = 0;
-  idx = Math.max(0, Math.min(state.catalog.length - 1, idx + delta));
-  state.selectedId = state.catalog[idx].id;
-  const newPage = Math.floor(idx / PER_PAGE);
+  idx = Math.max(0, Math.min(order.length - 1, idx + delta));
+  const target = order[idx];
+  state.selectedId = target.id;
+  if (f && target.id === f.id) { renderHome(); return; } // featured hero
+  const ri = rest.findIndex((e) => e.id === target.id);
+  const newPage = Math.floor(ri / PER_PAGE);
   if (newPage !== state.page) { state.page = newPage; renderHome(); }
   else setSelected(state.selectedId);
 }
@@ -228,6 +234,7 @@ function buildCatalog() {
       gameVersion: inst?.gameVersion || rp.gameVersion || '', loaderType: inst?.loaderType || rp.loader || '',
       loaderVersion: inst?.loaderVersion || '',
       description: rp.description || '', media: Array.isArray(rp.media) ? rp.media : [], changelog: rp.changelog || '',
+      featured: !!rp.featured,
       installed: !!inst, updatable: !!inst && !!rp.version && inst.version !== rp.version,
       repoPack: rp, pack: inst || null
     });
@@ -238,34 +245,46 @@ function buildCatalog() {
       id: p.id, name: p.name, version: p.version, icon: p.icon, summary: p.summary,
       gameVersion: p.gameVersion, loaderType: p.loaderType, loaderVersion: p.loaderVersion,
       description: '', media: [], changelog: '',
+      featured: false,
       installed: true, updatable: false, repoPack: null, pack: p
     });
   }
   state.catalog = out;
-  if (!state.selectedId || !out.find((e) => e.id === state.selectedId)) state.selectedId = out[0]?.id || null;
-  const pages = Math.max(1, Math.ceil(out.length / PER_PAGE));
-  if (state.page > pages - 1) state.page = pages - 1;
+  // Default selection prefers the featured ("main") pack.
+  const featuredId = out.find((e) => e.featured)?.id;
+  if (!state.selectedId || !out.find((e) => e.id === state.selectedId)) state.selectedId = featuredId || out[0]?.id || null;
 }
 function render() { buildCatalog(); renderHome(); if (state.detailOpen) renderDetail(); updateBadge(); }
 
 /* ---------------- Home / carousel ---------------- */
 function selectedEntry() { return state.catalog.find((e) => e.id === state.selectedId) || null; }
-function pageEntries() { const s = state.page * PER_PAGE; return state.catalog.slice(s, s + PER_PAGE); }
+function featuredEntry() { return state.catalog.find((e) => e.featured) || null; }
+// Carousel shows everything except the featured ("main") pack, which gets its own hero.
+function carouselList() { const f = featuredEntry(); return f ? state.catalog.filter((e) => e.id !== f.id) : state.catalog; }
+function pageEntries() { const list = carouselList(); const s = state.page * PER_PAGE; return list.slice(s, s + PER_PAGE); }
 
 function renderHome() {
   const has = state.catalog.length > 0;
+  const featured = featuredEntry();
+  const rest = carouselList();
+  const hasRest = rest.length > 0;
+  const pages = Math.max(1, Math.ceil(rest.length / PER_PAGE));
+  if (state.page > pages - 1) state.page = pages - 1;
+
   $('empty').classList.toggle('hidden', has);
-  $('stage').classList.toggle('hidden', !has);
-  $('car-dots').classList.toggle('hidden', !has);
   $('home-bar').classList.toggle('hidden', !has);
+  $('home').classList.toggle('has-featured', !!featured);
+  $('featured-hero').classList.toggle('hidden', !featured);
+  $('rest-label').classList.toggle('hidden', !(featured && hasRest));
+  $('stage').classList.toggle('hidden', !hasRest);
+  $('car-dots').classList.toggle('hidden', !hasRest);
   $('home-sub').textContent = has ? `${state.catalog.length} ${plural(state.catalog.length, 'збірка', 'збірки', 'збірок')} у бібліотеці` : 'Обери світ і поринай у гру';
   if (!has) return;
 
-  const entries = pageEntries();
-  if (!entries.find((e) => e.id === state.selectedId)) state.selectedId = entries[0]?.id || state.selectedId;
+  if (featured) renderFeaturedHero($('featured-hero'), featured);
 
   const box = $('pack-cards'); box.innerHTML = '';
-  entries.forEach((e, i) => {
+  pageEntries().forEach((e, i) => {
     const card = document.createElement('div');
     card.className = 'card' + (e.id === state.selectedId ? ' sel' : '');
     card.style.animationDelay = (i * 0.06) + 's';
@@ -297,7 +316,6 @@ function renderHome() {
     box.appendChild(card);
   });
 
-  const pages = Math.ceil(state.catalog.length / PER_PAGE);
   $('car-prev').disabled = state.page <= 0;
   $('car-next').disabled = state.page >= pages - 1;
   $('car-prev').classList.toggle('hidden', pages <= 1);
@@ -313,13 +331,38 @@ function renderHome() {
 }
 function setSelected(id) {
   state.selectedId = id;
+  const entries = pageEntries();
   document.querySelectorAll('#pack-cards .card').forEach((c, i) => {
-    c.classList.toggle('sel', pageEntries()[i]?.id === id);
+    c.classList.toggle('sel', entries[i]?.id === id);
   });
+  const f = featuredEntry();
+  $('featured-hero').classList.toggle('sel', !!f && f.id === id);
   refreshPlayButtons();
 }
+function renderFeaturedHero(hero, e) {
+  hero.className = 'featured-hero' + (e.id === state.selectedId ? ' sel' : '');
+  const flag = e.updatable ? '<span class="tagline" style="color:var(--warn)">оновлення</span>'
+    : (!e.installed ? '<span class="tagline" style="color:var(--accent2)">нове</span>' : '');
+  hero.innerHTML = `
+    <div class="fh-bg" ${e.icon ? `style="background-image:url('${e.icon}')"` : ''}></div>
+    <div class="fh-veil"></div>
+    <div class="fh-badge">★ Головна збірка</div>
+    <div class="fh-inner">
+      <div class="fh-name">${esc(e.name)}</div>
+      <div class="fh-sum">${esc(e.summary || e.description || 'Опис відсутній.')}</div>
+      <div class="fh-foot">
+        ${e.gameVersion ? `<span class="tagline">${esc(e.gameVersion)}</span>` : ''}
+        ${e.loaderType ? `<span class="tagline">${esc(e.loaderType)}</span>` : ''}
+        ${e.version ? `<span class="tagline ver">v${esc(e.version)}</span>` : ''}
+        ${flag}
+        <button class="card-detail" data-fdetail>Детально →</button>
+      </div>
+    </div>`;
+  hero.onclick = () => setSelected(e.id);
+  hero.querySelector('[data-fdetail]').onclick = (ev) => { ev.stopPropagation(); setSelected(e.id); openDetail(e, hero); };
+}
 $('car-prev').onclick = () => { if (state.page > 0) { state.page--; renderHome(); } };
-$('car-next').onclick = () => { const pages = Math.ceil(state.catalog.length / PER_PAGE); if (state.page < pages - 1) { state.page++; renderHome(); } };
+$('car-next').onclick = () => { const pages = Math.ceil(carouselList().length / PER_PAGE); if (state.page < pages - 1) { state.page++; renderHome(); } };
 
 function playLabel(e) {
   if (isBusy()) return state.busyText || 'Зачекайте...';
@@ -651,7 +694,7 @@ async function renderAdminList() {
     for (const p of list) {
       const row = document.createElement('div'); row.className = 'repo-pack';
       row.innerHTML = `<div class="rp-icon" ${p.icon ? `style="background-image:url('${p.icon}')"` : ''}></div>
-        <div class="rp-meta"><div class="rp-name">${esc(p.name)} <span class="hint">v${esc(p.version || '?')}</span></div><div class="rp-sub">${esc(p.gameVersion || '')} ${esc(p.loader || '')}</div></div>
+        <div class="rp-meta"><div class="rp-name">${p.featured ? '<span title="Головна" style="color:var(--accent)">★</span> ' : ''}${esc(p.name)} <span class="hint">v${esc(p.version || '?')}</span></div><div class="rp-sub">${esc(p.gameVersion || '')} ${esc(p.loader || '')}</div></div>
         <div class="admin-row-actions"><button class="btn-soft" data-edit>Ред.</button><button class="btn-ghost danger" data-del>✕</button></div>`;
       row.querySelector('[data-edit]').onclick = () => fillAdminForm(p);
       row.querySelector('[data-del]').onclick = async () => {
@@ -670,10 +713,11 @@ function fillAdminForm(p) {
   $('af-description').value = p.description || '';
   $('af-media').value = Array.isArray(p.media) ? p.media.join('\n') : (p.media || '');
   $('af-changelog').value = p.changelog || '';
+  $('af-featured').checked = !!p.featured;
 }
 function clearAdminForm() {
   ['af-name', 'af-id', 'af-version', 'af-gv', 'af-mrpack', 'af-summary', 'af-icon', 'af-description', 'af-media', 'af-changelog'].forEach((k) => { $(k).value = ''; });
-  $('af-loader').value = '';
+  $('af-loader').value = ''; $('af-featured').checked = false;
 }
 $('admin-clear-btn').onclick = clearAdminForm;
 $('admin-save-btn').onclick = async () => {
@@ -683,7 +727,8 @@ $('admin-save-btn').onclick = async () => {
     summary: $('af-summary').value.trim(), icon: $('af-icon').value.trim(),
     description: $('af-description').value.trim(),
     media: $('af-media').value.split('\n').map((s) => s.trim()).filter(Boolean),
-    changelog: $('af-changelog').value
+    changelog: $('af-changelog').value,
+    featured: $('af-featured').checked
   };
   if (!pack.name) { toast('Вкажи назву', 'error'); return; }
   if (!pack.mrpack) { toast('Вкажи посилання на .mrpack', 'error'); return; }

@@ -34,6 +34,22 @@ async function fetchText(url) {
   return res.text();
 }
 
+// Rewrite a Google Drive "share" link into a direct-download URL. Handles
+// /file/d/<id>/view, open?id=<id>, uc?id=<id>. Works for public files; large
+// files may still hit Google's virus-scan interstitial or a download quota
+// (handled as a clear error in downloadOnce).
+function googleDirect(url) {
+  try {
+    const u = new URL(url);
+    if (!/(^|\.)drive\.google\.com$/i.test(u.hostname) && !/(^|\.)drive\.usercontent\.google\.com$/i.test(u.hostname)) return url;
+    let id = null;
+    const m = u.pathname.match(/\/file\/d\/([^/]+)/);
+    if (m) id = m[1]; else id = u.searchParams.get('id');
+    if (!id) return url;
+    return `https://drive.usercontent.google.com/download?id=${encodeURIComponent(id)}&export=download&confirm=t`;
+  } catch { return url; }
+}
+
 // GET with redirect following. Resolves with the Node response stream.
 function httpGet(url, headers = {}, redirects = 6) {
   return new Promise((resolve, reject) => {
@@ -71,6 +87,7 @@ async function downloadFile(url, dest, opts = {}) {
 }
 
 async function downloadOnce(url, dest, { hash, algo = 'sha1', onProgress } = {}) {
+  url = googleDirect(url);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   if (hash && fs.existsSync(dest) && (await verify(dest, hash, algo))) return dest;
 
@@ -83,6 +100,12 @@ async function downloadOnce(url, dest, { hash, algo = 'sha1', onProgress } = {})
   const res = await httpGet(url, headers);
   const sc = res.statusCode;
   if (sc !== 200 && sc !== 206) { res.resume(); throw new Error(`GET ${url} -> ${sc}`); }
+  // Google Drive returns an HTML interstitial (not the file) when a public file
+  // is too large to scan or the download quota is exceeded.
+  if (/text\/html/i.test(res.headers['content-type'] || '') && /google\.com/i.test(url)) {
+    res.resume();
+    throw new Error('Google Drive не віддав файл напряму (великий файл або перевищено денний ліміт завантажень). Краще використати пряме посилання чи інший хостинг.');
+  }
 
   // Only append if the server returned a proper partial (206) starting exactly
   // at our offset; otherwise restart clean to avoid corrupting the file.
@@ -122,6 +145,7 @@ async function downloadOnce(url, dest, { hash, algo = 'sha1', onProgress } = {})
 const SEGMENT_MIN = 16 * 1024 * 1024; // only segment files >= 16 MB
 
 async function downloadSegmented(url, dest, opts = {}) {
+  url = googleDirect(url);
   const segments = opts.segments || 6;
   let total = 0, ranges = false;
   try {
