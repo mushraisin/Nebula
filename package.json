@@ -1,6 +1,6 @@
 {
   "name": "nebula-launcher",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "description": "Nebula - лаунчер для Minecraft-збірок",
   "main": "src/main/main.js",
   "author": "mushbarry",
@@ -46,10 +46,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "build/icon.ico",
-      "signtoolOptions": {
-        "publisherName": "mushbarry"
-      }
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,
