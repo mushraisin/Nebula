@@ -263,6 +263,28 @@ function featuredEntry() { return state.catalog.find((e) => e.featured) || null;
 function carouselList() { const f = featuredEntry(); return f ? state.catalog.filter((e) => e.id !== f.id) : state.catalog; }
 function pageEntries() { const list = carouselList(); const s = state.page * PER_PAGE; return list.slice(s, s + PER_PAGE); }
 
+function loaderClass(l) { l = String(l || '').toLowerCase(); if (l.includes('neoforge')) return 'neoforge'; if (l.includes('forge')) return 'forge'; if (l.includes('quilt')) return 'quilt'; if (l.includes('fabric')) return 'fabric'; return 'vanilla'; }
+function statusBadge(e) {
+  if (e.updatable) return '<div class="card-status upd"><span>↑</span>Оновлення</div>';
+  if (!e.installed) return '<div class="card-status new"><span>◆</span>Нове</div>';
+  return '<div class="card-status ok"><span>✓</span>Встановлено</div>';
+}
+function cardMarkup(e) {
+  const meta = [e.loaderType, e.gameVersion].filter(Boolean).join(' • ');
+  return `
+    <div class="card-img" ${e.icon ? `style="background-image:url('${e.icon}')"` : ''}>
+      ${e.icon ? '' : `<div class="ph">${initials(e.name)}</div>`}
+      ${statusBadge(e)}
+      <div class="card-sel-flag">✓ обрано</div>
+    </div>
+    <div class="card-body">
+      <div class="card-name">${esc(e.name)}</div>
+      <div class="card-meta">${e.loaderType ? `<span class="ldot ${loaderClass(e.loaderType)}"></span>` : ''}<span class="card-meta-txt">${esc(meta || 'Minecraft')}</span>${e.version ? `<span class="ver-chip">v${esc(e.version)}</span>` : ''}</div>
+      <div class="card-desc">${esc(e.summary || e.description || 'Опис відсутній.')}</div>
+      <button class="card-detail" data-detail>Детально <span class="cd-arrow">→</span></button>
+    </div>`;
+}
+
 function renderHome() {
   const has = state.catalog.length > 0;
   const featured = featuredEntry();
@@ -288,28 +310,7 @@ function renderHome() {
     const card = document.createElement('div');
     card.className = 'card' + (e.id === state.selectedId ? ' sel' : '');
     card.style.animationDelay = (i * 0.06) + 's';
-    const flag = e.updatable ? '<span class="pk-flag upd" title="Є оновлення"></span>'
-      : (!e.installed ? '<span class="pk-flag dl" title="Не встановлено"></span>' : '');
-    const badge = [
-      e.updatable ? '<span class="tagline" style="color:var(--warn)">оновлення</span>' : '',
-      !e.installed ? '<span class="tagline" style="color:var(--accent2)">нове</span>' : ''
-    ].filter(Boolean).join('');
-    card.innerHTML = `
-      <div class="card-img" ${e.icon ? `style="background-image:url('${e.icon}')"` : ''}>
-        ${e.icon ? '' : `<div class="ph">${initials(e.name)}</div>`}
-        <div class="card-badge">${badge}</div>
-        <div class="card-sel-flag">✓ обрано</div>
-      </div>
-      <div class="card-body">
-        <div class="card-name">${flag}${esc(e.name)}</div>
-        <div class="card-desc">${esc(e.summary || e.description || 'Опис відсутній.')}</div>
-        <div class="card-foot">
-          ${e.gameVersion ? `<span class="tagline">${esc(e.gameVersion)}</span>` : ''}
-          ${e.loaderType ? `<span class="tagline">${esc(e.loaderType)}</span>` : ''}
-          ${e.version ? `<span class="tagline ver">v${esc(e.version)}</span>` : ''}
-          <button class="card-detail" data-detail>Детально →</button>
-        </div>
-      </div>`;
+    card.innerHTML = cardMarkup(e);
     // Click selects the pack for play; "Детально" opens the full detail view.
     card.onclick = () => setSelected(e.id);
     card.querySelector('[data-detail]').onclick = (ev) => { ev.stopPropagation(); setSelected(e.id); openDetail(e, card); };
@@ -341,21 +342,18 @@ function setSelected(id) {
 }
 function renderFeaturedHero(hero, e) {
   hero.className = 'featured-hero' + (e.id === state.selectedId ? ' sel' : '');
-  const flag = e.updatable ? '<span class="tagline" style="color:var(--warn)">оновлення</span>'
-    : (!e.installed ? '<span class="tagline" style="color:var(--accent2)">нове</span>' : '');
   hero.innerHTML = `
     <div class="fh-bg" ${e.icon ? `style="background-image:url('${e.icon}')"` : ''}></div>
     <div class="fh-veil"></div>
     <div class="fh-badge">★ Головна збірка</div>
+    ${statusBadge(e)}
     <div class="fh-inner">
       <div class="fh-name">${esc(e.name)}</div>
       <div class="fh-sum">${esc(e.summary || e.description || 'Опис відсутній.')}</div>
       <div class="fh-foot">
-        ${e.gameVersion ? `<span class="tagline">${esc(e.gameVersion)}</span>` : ''}
-        ${e.loaderType ? `<span class="tagline">${esc(e.loaderType)}</span>` : ''}
-        ${e.version ? `<span class="tagline ver">v${esc(e.version)}</span>` : ''}
-        ${flag}
-        <button class="card-detail" data-fdetail>Детально →</button>
+        <span class="fh-meta">${e.loaderType ? `<span class="ldot ${loaderClass(e.loaderType)}"></span>` : ''}${esc([e.loaderType, e.gameVersion].filter(Boolean).join(' • ') || 'Minecraft')}</span>
+        ${e.version ? `<span class="ver-chip">v${esc(e.version)}</span>` : ''}
+        <button class="fh-detail" data-fdetail>Детально <span class="cd-arrow">→</span></button>
       </div>
     </div>`;
   hero.onclick = () => setSelected(e.id);
