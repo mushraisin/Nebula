@@ -1,7 +1,7 @@
 // Wires renderer <-> main IPC. Long-running operations report progress by
 // emitting 'nebula:event' messages to the window; the invoke() call resolves
 // with the final result (or throws on error).
-const { ipcMain, dialog, shell, BrowserWindow } = require('electron');
+const { app, ipcMain, dialog, shell, BrowserWindow } = require('electron');
 const store = require('./store');
 const auth = require('./auth');
 const packs = require('./packs');
@@ -27,6 +27,9 @@ function register() {
     return w.isMaximized();
   });
   ipcMain.handle('win:close', () => { BrowserWindow.getFocusedWindow()?.close(); });
+
+  // ---- App info ----
+  ipcMain.handle('app:version', () => app.getVersion());
 
   // ---- Auth ----
   ipcMain.handle('auth:login', async () => auth.login());

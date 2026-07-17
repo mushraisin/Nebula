@@ -108,6 +108,7 @@ button:focus:not(:focus-visible), input:focus:not(:focus-visible) { outline: non
 .tb-brand:hover { background: var(--glass-2); }
 .tb-logo { display: grid; place-items: center; filter: drop-shadow(0 3px 6px rgba(0,0,0,.35)); }
 .tb-name { font-family: 'PressStart', monospace; font-size: 13px; letter-spacing: 2px; background: linear-gradient(90deg, var(--accent-text), #fff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tb-ver { font-size: 10.5px; font-weight: 700; color: var(--muted); padding: 2px 7px; border-radius: 999px; background: var(--glass-2); border: 1px solid var(--glass-brd); letter-spacing: .3px; }
 .tb-drag { flex: 1; height: 100%; }
 .win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; }
 .win-btn { width: 34px; height: 32px; border-radius: 9px; color: var(--muted); display: grid; place-items: center; transition: background .15s, color .15s; }
@@ -395,6 +396,7 @@ textarea { resize: vertical; }
 /* Settings layout */
 .settings-sheet { padding: 22px; }
 .settings-sheet > #settings-save { margin-top: 18px; }
+.set-ver { text-align: center; font-size: 11.5px; color: var(--muted); margin-top: 12px; letter-spacing: .3px; }
 .settings-layout { display: flex; gap: 18px; }
 .set-nav { display: flex; flex-direction: column; gap: 4px; width: 152px; flex-shrink: 0; }
 .set-tab { text-align: left; padding: 11px 13px; border-radius: 11px; font-size: 13px; font-weight: 600; color: var(--muted); transition: background .15s, color .15s; }

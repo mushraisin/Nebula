@@ -891,6 +891,7 @@ function buildLeaves() {
 /* ---------------- Boot ---------------- */
 (async function boot() {
   buildLeaves();
+  try { const v = await api.appVersion(); state.version = v; $('tb-ver').textContent = 'v' + v; $('set-ver').textContent = 'Nebula v' + v; } catch { /* dev/preview */ }
   try { const s = await api.getSettings(); state.theme = s.theme || DEFAULT_THEME; applyTheme(state.theme.bg, state.theme.accent); state.glass = s.liquidGlass === true; applyGlass(state.glass); } catch { applyTheme(DEFAULT_THEME.bg, DEFAULT_THEME.accent); applyGlass(false); }
   await refreshAccount();
   refreshAdminButton();

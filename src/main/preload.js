@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('nebula', {
     maximize: () => invoke('win:maximize'),
     close: () => invoke('win:close')
   },
+  // App
+  appVersion: () => invoke('app:version'),
   // Auth
   login: () => invoke('auth:login'),
   loginOffline: (name) => invoke('auth:loginOffline', name),
