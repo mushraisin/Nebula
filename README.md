@@ -14,6 +14,8 @@ launcher sees them right away and installs them in one click.
 > [Using your own repository](#using-your-own-repository)). No part of it is tied to
 > 3adrypanka beyond the default repository URL.
 
+![Nebula Launcher](docs/launcher.png)
+
 ## ⚠️ "Windows protected your PC" (SmartScreen) — це не вірус / it is not a virus
 
 **🇺🇦 Українською.** Під час першого запуску Windows може показати синє вікно
@@ -186,21 +188,6 @@ actions you ask for, it contacts:
 
 Nothing above is initiated on the developer's behalf — each request exists only to install,
 update or launch what you asked for.
-
-## Code signing policy
-
-Free code signing for Windows binaries is provided by [SignPath.io](https://signpath.io),
-with a certificate issued by the [SignPath Foundation](https://signpath.org).
-
-- **Roles**
-  - *Author / Reviewer / Approver*: [mushbarry](https://github.com/mushraisin) (project owner
-    and sole maintainer).
-- **Process**: releases are built from this public repository by
-  [GitHub Actions](.github/workflows/build.yml) on a tagged commit. Every signing request is
-  reviewed and approved manually before the artifact is signed.
-- **Privacy**: this program will not transfer any information to other networked systems
-  unless specifically requested by the user or the person installing or operating it.
-  See [Privacy](#privacy) for the full statement.
 
 ## License
 

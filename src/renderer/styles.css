@@ -72,13 +72,14 @@ button:focus:not(:focus-visible), input:focus:not(:focus-visible) { outline: non
   mix-blend-mode: multiply; }
 .blob { position: absolute; filter: blur(72px); opacity: .5; mix-blend-mode: screen;
   will-change: transform, border-radius; }
-.blob-a { width: 620px; height: 560px; left: -8%; top: -12%; background: radial-gradient(circle, var(--accent), transparent 68%);
+/* Blobs are tinted from the accent family so the whole backdrop follows the theme accent. */
+.blob-a { width: 640px; height: 580px; left: -8%; top: -12%; background: radial-gradient(circle, var(--accent), transparent 68%); opacity: .55;
   border-radius: 60% 40% 55% 45% / 55% 50% 50% 45%; animation: float1 30s ease-in-out infinite alternate, morph 18s ease-in-out infinite alternate; }
-.blob-b { width: 560px; height: 520px; right: -10%; top: 2%; background: radial-gradient(circle, #35c4b0, transparent 68%); opacity: .34;
+.blob-b { width: 560px; height: 520px; right: -10%; top: 2%; background: radial-gradient(circle, var(--accent-hover), transparent 68%); opacity: .42;
   border-radius: 45% 55% 45% 55% / 50% 45% 55% 50%; animation: float2 38s ease-in-out infinite alternate, morph 22s ease-in-out infinite alternate; }
-.blob-c { width: 640px; height: 600px; left: 38%; bottom: -26%; background: radial-gradient(circle, var(--accent2), transparent 70%); opacity: .26;
+.blob-c { width: 660px; height: 620px; left: 36%; bottom: -26%; background: radial-gradient(circle, var(--accent-text), transparent 70%); opacity: .3;
   border-radius: 55% 45% 50% 50% / 45% 55% 45% 55%; animation: float3 44s ease-in-out infinite alternate, morph 26s ease-in-out infinite alternate; }
-.blob-d { width: 420px; height: 420px; left: 8%; bottom: -12%; background: radial-gradient(circle, #7bd67a, transparent 70%); opacity: .28;
+.blob-d { width: 440px; height: 440px; left: 8%; bottom: -14%; background: radial-gradient(circle, var(--accent), transparent 70%); opacity: .34;
   border-radius: 50% 50% 45% 55% / 55% 45% 55% 45%; animation: float2 34s ease-in-out infinite alternate-reverse, morph 20s ease-in-out infinite alternate; }
 @keyframes float1 { to { transform: translate(70px, 50px) scale(1.15); } }
 @keyframes float2 { to { transform: translate(-60px, 40px) scale(1.1); } }
@@ -214,7 +215,7 @@ button:focus:not(:focus-visible), input:focus:not(:focus-visible) { outline: non
 .dot.active { width: 22px; border-radius: 999px; background: var(--accent); border-color: transparent; }
 
 /* Featured ("main") pack hero */
-.featured-hero { position: relative; height: 172px; flex-shrink: 0; border-radius: var(--radius); overflow: hidden; cursor: pointer; background: var(--surface); border: 1px solid var(--glass-brd); box-shadow: var(--shadow-sm), var(--glass-hi); transition: transform .2s cubic-bezier(.2,.7,.3,1), border-color .2s, box-shadow .2s; animation: cardIn .4s cubic-bezier(.2,.7,.3,1) backwards; }
+.featured-hero { position: relative; height: 202px; flex-shrink: 0; border-radius: var(--radius); overflow: hidden; cursor: pointer; background: var(--surface); border: 1px solid var(--glass-brd); box-shadow: var(--shadow-sm), var(--glass-hi); transition: transform .2s cubic-bezier(.2,.7,.3,1), border-color .2s, box-shadow .2s; animation: cardIn .4s cubic-bezier(.2,.7,.3,1) backwards; }
 .featured-hero::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; border-radius: inherit; background: var(--sheen); mix-blend-mode: soft-light; }
 .featured-hero:hover { transform: translateY(-3px); box-shadow: 0 24px 54px rgba(0,0,0,.52), var(--glass-hi); }
 .featured-hero:active { transform: translateY(-1px) scale(.996); }
@@ -235,12 +236,13 @@ button:focus:not(:focus-visible), input:focus:not(:focus-visible) { outline: non
 .fh-detail:active { transform: scale(.97); }
 .rest-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
 
-/* Compact carousel when a featured hero is present (fixed window height) */
-.home.has-featured { gap: 14px; }
-.home.has-featured .stage { max-height: 250px; }
-.home.has-featured .card { height: 230px; min-height: 0; max-height: 230px; }
-.home.has-featured .card-img { height: 44%; }
-.home.has-featured .card-desc { display: none; }
+/* Carousel when a featured hero is present: tighten chrome, keep cards tall/organic */
+.home.has-featured { gap: 12px; padding-top: 20px; padding-bottom: 16px; }
+.home.has-featured .home-head h1 { font-size: 24px; }
+.home.has-featured .home-sub { font-size: 12.5px; margin-top: 2px; }
+.home.has-featured .card { height: 248px; min-height: 0; max-height: 248px; }
+.home.has-featured .card-img { height: 52%; }
+.home.has-featured .card-desc { -webkit-line-clamp: 2; }
 
 /* Empty */
 .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; text-align: center; padding: 24px; }
@@ -508,7 +510,8 @@ input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
 .no-glass .spec, .no-glass .set-card, .no-glass .card-status, .no-glass input, .no-glass select, .no-glass textarea {
   backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
 }
-.no-glass .card-status { background: rgba(10, 14, 12, 0.85); }
+/* only the quiet "installed" pill needs a solid dark bg; new/update keep their colour */
+.no-glass .card-status.ok { background: rgba(10, 14, 12, 0.9); }
 /* opaque replacements for the hardcoded translucent backgrounds */
 .no-glass .account-menu { background: var(--surface-2); }
 .no-glass .tabs { background: var(--surface); }
