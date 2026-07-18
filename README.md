@@ -14,6 +14,31 @@ launcher sees them right away and installs them in one click.
 > [Using your own repository](#using-your-own-repository)). No part of it is tied to
 > 3adrypanka beyond the default repository URL.
 
+## ⚠️ "Windows protected your PC" (SmartScreen) — це не вірус / it is not a virus
+
+**🇺🇦 Українською.** Під час першого запуску Windows може показати синє вікно
+**«Система Windows захистила ваш ПК»** (SmartScreen), а антивірус — попередити про
+«невідомого видавця». **Це не означає, що у програмі є вірус.** Так Windows реагує на
+будь-яку програму **без платного цифрового підпису** (~сотні $ на рік) та без напрацьованої
+«репутації» за кількістю завантажень. Nebula — відкритий код (можеш перевірити весь код у
+цьому репозиторії), збірки роблять автоматично на GitHub.
+
+Щоб запустити: натисни **«Детальніше» → «Виконати попри все»**.
+
+**🇬🇧 In English.** On first launch Windows may show a blue
+**"Windows protected your PC"** (SmartScreen) dialog, and some antivirus may warn about an
+"unknown publisher". **This does not mean the file contains a virus.** Windows shows this for
+any app that isn't **code-signed** (a paid certificate, ~hundreds $/year) and hasn't built up
+download "reputation" yet. Nebula is fully open source (read all the code in this repo) and
+its builds are produced automatically by GitHub Actions.
+
+To run it: click **"More info" → "Run anyway"**.
+
+**✅ Proof / Доказ — незалежна перевірка на [VirusTotal](https://www.virustotal.com/gui/file/528d7ea3059ebd52bdcf39acf97588338fff4f263d6f9eac050fbd59fe17403c/detection): 0 / 67**
+(жоден з 67 антивірусів не вважає файл шкідливим / none of 67 vendors flagged the file).
+
+[![VirusTotal scan: 0/67 vendors flagged this file](docs/virustotal.png)](https://www.virustotal.com/gui/file/528d7ea3059ebd52bdcf39acf97588338fff4f263d6f9eac050fbd59fe17403c/detection)
+
 ## Features
 
 - **Automatic pack catalog** — the built-in repository is fetched on startup; available
