@@ -64,6 +64,11 @@ function crc32File(p) {
 }
 function rmIfExists(p) { try { if (fs.existsSync(p)) fs.rmSync(p, { force: true }); } catch { /* ignore */ } }
 
+// Player-owned settings files: once they exist, updates must NOT overwrite or
+// delete them, so custom keybinds/video/audio survive every pack update.
+const PROTECTED_USER_FILES = new Set(['options.txt', 'optionsof.txt', 'optionsshaders.txt']);
+const isProtected = (rel) => PROTECTED_USER_FILES.has(path.basename(rel).toLowerCase());
+
 // Run `worker` over items with a bounded number of parallel workers.
 async function runPool(items, concurrency, worker) {
   let idx = 0;
@@ -135,6 +140,11 @@ async function installMrpack(mrpackPath, instanceDir, onProgress = () => {}, pre
       if (!rel) continue;
       newOverrideSet.add(rel);
       const dest = path.join(instanceDir, rel);
+      // Keep the player's own settings (options.txt etc.) if they already exist.
+      if (isProtected(rel) && fs.existsSync(dest)) {
+        onProgress({ phase: 'overrides', current: oi, total: overrides.length, label: 'Збережено налаштування: ' + rel });
+        continue;
+      }
       let same = false;
       if (fs.existsSync(dest) && e.crc32 != null) {
         try { same = (await crc32File(dest)) === (e.crc32 >>> 0); } catch { same = false; }
@@ -146,9 +156,9 @@ async function installMrpack(mrpackPath, instanceDir, onProgress = () => {}, pre
       await pipeline(stream, fs.createWriteStream(dest));
     }
 
-    // Delete override files the pack removed since last install.
+    // Delete override files the pack removed since last install (never protected ones).
     if (prevManifest && Array.isArray(prevManifest.overrides)) {
-      for (const rel of prevManifest.overrides) if (!newOverrideSet.has(rel)) rmIfExists(path.join(instanceDir, rel));
+      for (const rel of prevManifest.overrides) if (!newOverrideSet.has(rel) && !isProtected(rel)) rmIfExists(path.join(instanceDir, rel));
     }
 
     return {

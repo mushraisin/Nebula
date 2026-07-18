@@ -41,8 +41,11 @@ contextBridge.exposeInMainWorld('nebula', {
   createProfile: (opts) => invoke('profiles:create', opts),
   // Mods
   modsList: (id) => invoke('mods:list', id),
-  modsSearch: (id, query) => invoke('mods:search', { id, query }),
+  modsSearch: (id, query, opts) => invoke('mods:search', { id, query, opts }),
+  modsProject: (projectId) => invoke('mods:project', projectId),
+  modsVersions: (id, projectId) => invoke('mods:versions', { id, projectId }),
   modsInstall: (id, projectId) => invoke('mods:install', { id, projectId }),
+  modsInstallVersion: (id, versionId) => invoke('mods:installVersion', { id, versionId }),
   modsRemove: (id, filename) => invoke('mods:remove', { id, filename }),
   modsToggle: (id, filename) => invoke('mods:toggle', { id, filename }),
   // Admin

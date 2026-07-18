@@ -144,12 +144,22 @@ function register() {
   // ---- Mods (Modrinth) ----
   const packDir = (id) => { const p = packs.getInstalled(id); if (!p) throw new Error('Збірку не знайдено'); return p; };
   ipcMain.handle('mods:list', async (_e, id) => mods.listInstalled(packDir(id).dir));
-  ipcMain.handle('mods:search', async (_e, { id, query }) => {
-    const p = packDir(id); return mods.search(query, p.gameVersion, p.loaderType);
+  ipcMain.handle('mods:search', async (_e, { id, query, opts }) => {
+    const p = packDir(id); return mods.search(query, p.gameVersion, p.loaderType, opts || {});
+  });
+  ipcMain.handle('mods:project', async (_e, projectId) => mods.getProject(projectId));
+  ipcMain.handle('mods:versions', async (_e, { id, projectId }) => {
+    const p = packDir(id); return mods.getVersions(projectId, p.gameVersion, p.loaderType);
   });
   ipcMain.handle('mods:install', async (_e, { id, projectId }) => {
     const p = packDir(id);
     const fn = await mods.install(p.dir, projectId, p.gameVersion, p.loaderType, (text) => emit('mods-status', { id, text }));
+    emit('mods-status', { id, text: '' });
+    return fn;
+  });
+  ipcMain.handle('mods:installVersion', async (_e, { id, versionId }) => {
+    const p = packDir(id);
+    const fn = await mods.installVersion(p.dir, versionId, p.gameVersion, p.loaderType, (text) => emit('mods-status', { id, text }));
     emit('mods-status', { id, text: '' });
     return fn;
   });

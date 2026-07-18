@@ -167,15 +167,36 @@
       <section class="pane" id="pane-mods">
         <div class="muted-note hidden" id="mods-locked">Спочатку встанови цю збірку, щоб керувати модами.</div>
         <div id="mods-ui">
-          <div class="mods-bar">
+          <!-- Toolbar (catalog) -->
+          <div class="mods-bar" id="mods-toolbar">
             <input type="text" id="mod-query" placeholder="Пошук модів на Modrinth..." />
+            <select id="mod-sort" title="Сортування">
+              <option value="relevance">За релевантністю</option>
+              <option value="downloads">За завантаженнями</option>
+              <option value="follows">За підписниками</option>
+              <option value="newest">Найновіші</option>
+              <option value="updated">Оновлені</option>
+            </select>
             <button class="btn-primary" id="mod-search-btn">Пошук</button>
+            <button class="btn-ghost" id="mods-installed-btn">Встановлені <span id="mods-count"></span></button>
             <button class="btn-ghost" id="mods-folder">Папка</button>
           </div>
           <div class="mod-status muted-note hidden" id="mod-status"></div>
-          <div class="mod-results" id="mod-results"></div>
-          <div class="mods-installed-head">Встановлені моди <span id="mods-count" class="hint"></span></div>
-          <div class="mods-installed" id="mods-installed"></div>
+
+          <!-- Catalog view -->
+          <div id="mods-browse">
+            <div class="mod-results" id="mod-results"></div>
+            <div class="mod-pager" id="mod-pager"></div>
+          </div>
+
+          <!-- Installed view -->
+          <div id="mods-installed-view" class="hidden">
+            <div class="mods-installed-head"><button class="btn-ghost sm" id="mods-back-catalog">← Каталог</button><span>Встановлені моди</span><span id="mods-count2" class="hint"></span></div>
+            <div class="mods-installed" id="mods-installed"></div>
+          </div>
+
+          <!-- Single mod page -->
+          <div id="mod-page" class="hidden"></div>
         </div>
       </section>
       <section class="pane" id="pane-media">

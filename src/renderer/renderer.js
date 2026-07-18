@@ -764,22 +764,159 @@ $('pf-create').onclick = async () => {
 
 /* ---------------- Mods manager ---------------- */
 function fmtDl(n) { n = n || 0; return n >= 1e6 ? (n / 1e6).toFixed(1) + 'М' : n >= 1e3 ? (n / 1e3).toFixed(0) + 'К' : String(n); }
+
+const modsState = { packId: null, query: '', sort: 'relevance', offset: 0, limit: 20, total: 0 };
+const mpid = () => modsState.packId;
+
+function showModsView(v) {
+  $('mods-toolbar').classList.toggle('hidden', v === 'page');
+  $('mods-browse').classList.toggle('hidden', v !== 'browse');
+  $('mods-installed-view').classList.toggle('hidden', v !== 'installed');
+  $('mod-page').classList.toggle('hidden', v !== 'page');
+  if (v !== 'page') $('mod-page').innerHTML = '';
+}
 async function renderMods(e) {
   const locked = !e || !e.installed;
   $('mods-locked').classList.toggle('hidden', !locked);
   $('mods-ui').classList.toggle('hidden', locked);
   if (locked) return;
-  $('mod-results').innerHTML = '';
+  modsState.packId = e.id;
   $('mod-status').classList.add('hidden');
-  await loadInstalledMods(e.id);
+  showModsView('browse');
+  await doModSearch(true);
+  updateInstalledCount(e.id);
+}
+async function updateInstalledCount(id) {
+  let n = 0; try { n = (await api.modsList(id)).length; } catch { /* */ }
+  const t = n ? `(${n})` : '';
+  $('mods-count').textContent = t; $('mods-count2').textContent = t;
+}
+async function doModSearch(reset) {
+  if (!mpid()) return;
+  if (reset) { modsState.query = $('mod-query').value.trim(); modsState.sort = $('mod-sort').value; modsState.offset = 0; }
+  showModsView('browse');
+  const res = $('mod-results'); res.innerHTML = '<div class="muted-note">Пошук...</div>'; $('mod-pager').innerHTML = '';
+  try {
+    const data = await api.modsSearch(mpid(), modsState.query, { offset: modsState.offset, limit: modsState.limit, sort: modsState.sort });
+    modsState.total = data.total || 0;
+    renderModResults(data.hits || []);
+    renderModPager();
+  } catch (err) { res.innerHTML = `<div class="muted-note">Помилка пошуку: ${esc(err.message)}</div>`; }
+}
+function renderModResults(hits) {
+  const res = $('mod-results'); res.innerHTML = '';
+  if (!hits.length) { res.innerHTML = '<div class="muted-note">Нічого не знайдено для цієї версії/лоадера.</div>'; return; }
+  let i = 0;
+  for (const h of hits) {
+    const card = document.createElement('div'); card.className = 'mod-card'; card.style.animationDelay = (i++ * 0.02) + 's';
+    const cats = (h.categories || []).slice(0, 4).map((c) => `<span class="mod-cat">${esc(c)}</span>`).join('');
+    card.innerHTML = `
+      <div class="mod-icon" ${h.icon ? `style="background-image:url('${esc(h.icon)}')"` : ''}></div>
+      <div class="mod-meta">
+        <div class="mod-title-row"><span class="mod-title">${esc(h.title)}</span>${h.author ? `<span class="mod-author">від ${esc(h.author)}</span>` : ''}</div>
+        <div class="mod-desc">${esc(h.description || '')}</div>
+        <div class="mod-tags">${cats}<span class="mod-dl">⬇ ${fmtDl(h.downloads)}</span></div>
+      </div>
+      <button class="btn-primary" data-add>Додати</button>`;
+    card.onclick = (ev) => { if (ev.target.closest('[data-add]')) return; openModPage(h.id); };
+    card.querySelector('[data-add]').onclick = async (ev) => {
+      ev.stopPropagation(); const btn = ev.target; btn.disabled = true; btn.textContent = '...';
+      try { await api.modsInstall(mpid(), h.id); toast(`${h.title}: додано`, 'ok'); btn.textContent = '✓ Додано'; updateInstalledCount(mpid()); }
+      catch (err) { toast('Помилка: ' + err.message, 'error'); btn.disabled = false; btn.textContent = 'Додати'; }
+    };
+    res.appendChild(card);
+  }
+}
+function renderModPager() {
+  const box = $('mod-pager'); box.innerHTML = '';
+  const { offset, limit, total } = modsState;
+  if (total <= limit) return;
+  const page = Math.floor(offset / limit); const pages = Math.ceil(total / limit);
+  const go = (p) => { modsState.offset = p * limit; doModSearch(false); $('mod-results').scrollIntoView({ block: 'start', behavior: 'smooth' }); };
+  const mk = (label, p, dis, active) => { const b = document.createElement('button'); b.className = 'pg' + (active ? ' active' : ''); b.textContent = label; b.disabled = !!dis; if (!dis && !active) b.onclick = () => go(p); return b; };
+  const ell = () => { const s = document.createElement('span'); s.className = 'pg-ell'; s.textContent = '…'; return s; };
+  box.appendChild(mk('‹', page - 1, page <= 0));
+  const win = 2, start = Math.max(0, page - win), end = Math.min(pages - 1, page + win);
+  if (start > 0) { box.appendChild(mk('1', 0, false, page === 0)); if (start > 1) box.appendChild(ell()); }
+  for (let p = start; p <= end; p++) box.appendChild(mk(String(p + 1), p, false, p === page));
+  if (end < pages - 1) { if (end < pages - 2) box.appendChild(ell()); box.appendChild(mk(String(pages), pages - 1, false, page === pages - 1)); }
+  box.appendChild(mk('›', page + 1, page >= pages - 1));
+  const info = document.createElement('span'); info.className = 'pg-info'; info.textContent = `${total} модів`; box.appendChild(info);
+}
+async function openModPage(projectId) {
+  showModsView('page');
+  const box = $('mod-page');
+  box.innerHTML = '<div class="muted-note">Завантаження...</div>';
+  let proj, versions;
+  try { [proj, versions] = await Promise.all([api.modsProject(projectId), api.modsVersions(mpid(), projectId)]); }
+  catch (err) { box.innerHTML = `<button class="btn-ghost mp-back" id="mp-back">← Каталог</button><div class="muted-note" style="margin-top:14px">Помилка: ${esc(err.message)}</div>`; $('mp-back').onclick = () => showModsView('browse'); return; }
+  const verOpts = versions.length
+    ? versions.map((v) => `<option value="${esc(v.id)}">${esc(v.versionNumber || v.name)} · ${esc((v.loaders || []).join('/'))} · ${esc((v.gameVersions || []).slice(0, 4).join(', '))}${v.type && v.type !== 'release' ? ' [' + esc(v.type) + ']' : ''}</option>`).join('')
+    : '<option value="">Немає сумісних версій</option>';
+  const cats = (proj.categories || []).map((c) => `<span class="mod-cat">${esc(c)}</span>`).join('');
+  const gallery = (proj.gallery || []).map((g) => `<img class="mp-shot" src="${esc(g.url)}" loading="lazy" alt="${esc(g.title)}" title="${esc(g.title)}">`).join('');
+  const linkNames = { source: 'Код', issues: 'Баги', wiki: 'Wiki', discord: 'Discord' };
+  const links = Object.entries(proj.links || {}).filter(([, v]) => v).map(([k, v]) => `<button class="mp-link" data-link="${esc(v)}">${linkNames[k] || k}</button>`).join('');
+  box.innerHTML = `
+    <button class="btn-ghost mp-back" id="mp-back">← Каталог</button>
+    <div class="mp-head">
+      <div class="mp-icon" ${proj.icon ? `style="background-image:url('${esc(proj.icon)}')"` : ''}></div>
+      <div class="mp-titles">
+        <div class="mp-title">${esc(proj.title)}</div>
+        <div class="mp-sub">${esc(proj.description || '')}</div>
+        <div class="mp-stats"><span>⬇ ${fmtDl(proj.downloads)}</span><span>❤ ${fmtDl(proj.followers)}</span>${cats}</div>
+      </div>
+    </div>
+    <div class="mp-actions">
+      <select id="mp-version" class="mp-version">${verOpts}</select>
+      <button class="btn-primary" id="mp-install" ${versions.length ? '' : 'disabled'}>Встановити</button>
+      ${links ? `<div class="mp-links">${links}</div>` : ''}
+    </div>
+    ${gallery ? `<div class="mp-gallery">${gallery}</div>` : ''}
+    <div class="prose mp-body">${mdToHtml(proj.body || proj.description || 'Опис відсутній.')}</div>`;
+  $('mp-back').onclick = () => showModsView('browse');
+  box.querySelectorAll('[data-link]').forEach((b) => { b.onclick = () => api.openExternal(b.dataset.link); });
+  box.querySelectorAll('.mp-shot').forEach((img) => { img.onclick = () => api.openExternal(img.src); });
+  box.querySelectorAll('.mp-body .md-link').forEach((s) => { s.onclick = () => api.openExternal(s.dataset.link); });
+  $('mp-install').onclick = async () => {
+    const vid = $('mp-version').value; if (!vid) return;
+    const btn = $('mp-install'); const old = btn.textContent; btn.disabled = true; btn.textContent = 'Встановлення...';
+    try { await api.modsInstallVersion(mpid(), vid); toast(`${proj.title}: встановлено`, 'ok'); btn.textContent = '✓ Встановлено'; updateInstalledCount(mpid()); setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 1600); }
+    catch (err) { toast('Помилка: ' + err.message, 'error'); btn.textContent = old; btn.disabled = false; }
+  };
+  box.scrollTop = 0;
+}
+// Lightweight, safe Markdown -> HTML for mod descriptions.
+function mdToHtml(md) {
+  md = String(md || '');
+  const tok = []; const stash = (html) => { tok.push(html); return ` T${tok.length - 1} `; };
+  md = md.replace(/```([\s\S]*?)```/g, (m, c) => stash('<pre>' + esc(c.replace(/^\w*\n/, '')) + '</pre>'));
+  md = md.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, (m, a, u) => stash(`<img class="md-img" src="${esc(u)}" alt="${esc(a)}" loading="lazy">`));
+  md = md.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (m, t, u) => stash(`<span class="md-link" data-link="${esc(u)}">${esc(t)}</span>`));
+  md = md.replace(/`([^`\n]+)`/g, (m, c) => stash('<code>' + esc(c) + '</code>'));
+  let h = esc(md);
+  h = h.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<i>$2</i>');
+  const lines = h.split('\n'); const out = []; let inList = false;
+  const closeList = () => { if (inList) { out.push('</ul>'); inList = false; } };
+  for (const line of lines) {
+    const l = line.trim(); let m;
+    if ((m = l.match(/^#{1,6}\s+(.*)$/))) { closeList(); out.push('<h3>' + m[1] + '</h3>'); continue; }
+    if ((m = l.match(/^[-*]\s+(.*)$/))) { if (!inList) { out.push('<ul>'); inList = true; } out.push('<li>' + m[1] + '</li>'); continue; }
+    if (/^[-=]{3,}$/.test(l)) { closeList(); continue; }
+    if (!l) { closeList(); continue; }
+    closeList(); out.push('<p>' + line + '</p>');
+  }
+  closeList();
+  return out.join('').replace(/ T(\d+) /g, (m, i) => tok[+i]);
 }
 async function loadInstalledMods(id) {
   const box = $('mods-installed');
   let list = [];
   try { list = await api.modsList(id); } catch { /* */ }
-  $('mods-count').textContent = list.length ? `(${list.length})` : '';
+  const t = list.length ? `(${list.length})` : '';
+  $('mods-count').textContent = t; $('mods-count2').textContent = t;
   box.innerHTML = '';
-  if (!list.length) { box.innerHTML = '<div class="muted-note">Модів ще немає. Знайди і додай вище.</div>'; return; }
+  if (!list.length) { box.innerHTML = '<div class="muted-note">Модів ще немає. Знайди і додай у каталозі.</div>'; return; }
   for (const m of list) {
     const row = document.createElement('div');
     row.className = 'mod-row' + (m.enabled ? '' : ' off');
@@ -789,32 +926,12 @@ async function loadInstalledMods(id) {
     box.appendChild(row);
   }
 }
-async function doModSearch() {
-  const e = selectedEntry(); if (!e?.installed) return;
-  const q = $('mod-query').value.trim();
-  const res = $('mod-results'); res.innerHTML = '<div class="muted-note">Пошук...</div>';
-  try {
-    const hits = await api.modsSearch(e.id, q);
-    res.innerHTML = '';
-    if (!hits.length) { res.innerHTML = '<div class="muted-note">Нічого не знайдено для цієї версії/лоадера.</div>'; return; }
-    let i = 0;
-    for (const h of hits) {
-      const card = document.createElement('div'); card.className = 'mod-card'; card.style.animationDelay = (i++ * 0.02) + 's';
-      card.innerHTML = `<div class="mod-icon" ${h.icon ? `style="background-image:url('${h.icon}')"` : ''}></div>
-        <div class="mod-meta"><div class="mod-title">${esc(h.title)}</div><div class="mod-desc">${esc(h.description || '')}</div><div class="mod-dl">${fmtDl(h.downloads)} завантажень</div></div>
-        <button class="btn-primary" data-add>Додати</button>`;
-      card.querySelector('[data-add]').onclick = async (ev) => {
-        const btn = ev.target; btn.disabled = true; btn.textContent = '...';
-        try { await api.modsInstall(e.id, h.id); toast(`${h.title}: додано`, 'ok'); await loadInstalledMods(e.id); btn.textContent = '✓ Додано'; }
-        catch (err) { toast('Помилка: ' + err.message, 'error'); btn.disabled = false; btn.textContent = 'Додати'; }
-      };
-      res.appendChild(card);
-    }
-  } catch (err) { res.innerHTML = `<div class="muted-note">Помилка пошуку: ${esc(err.message)}</div>`; }
-}
-$('mod-search-btn').onclick = doModSearch;
-$('mod-query').onkeydown = (e) => { if (e.key === 'Enter') doModSearch(); };
-$('mods-folder').onclick = () => { const e = selectedEntry(); if (e?.installed) api.openDir(e.id); };
+$('mod-search-btn').onclick = () => doModSearch(true);
+$('mod-query').onkeydown = (e) => { if (e.key === 'Enter') doModSearch(true); };
+$('mod-sort').onchange = () => doModSearch(true);
+$('mods-installed-btn').onclick = () => { if (mpid()) { showModsView('installed'); loadInstalledMods(mpid()); } };
+$('mods-back-catalog').onclick = () => showModsView('browse');
+$('mods-folder').onclick = () => { if (mpid()) api.openDir(mpid()); };
 
 /* ---------------- Events ---------------- */
 api.on((ev) => {
