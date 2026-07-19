@@ -8,7 +8,8 @@ const state = {
   installing: false, running: false, busyId: null, busyText: '',
   detailOpen: false, glass: false, theme: { bg: '#0f1512', accent: '#4fd488' }
 };
-function applyGlass(on) { document.documentElement.classList.toggle('no-glass', !on); }
+// Material Design 3 is the base look; Liquid Glass is an opt-in overlay (.glass).
+function applyGlass(on) { document.documentElement.classList.toggle('glass', !!on); }
 const isBusy = () => state.launching || state.installing || state.running;
 const PER_PAGE = 3;
 
@@ -27,25 +28,35 @@ const PRESETS = [
 function hexToRgb(h) { h = String(h).replace('#', ''); if (h.length === 3) h = h.split('').map((c) => c + c).join(''); const n = parseInt(h, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
 function rgbToHex(r, g, b) { return '#' + [r, g, b].map((x) => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join(''); }
 function shift(hex, amt) { const [r, g, b] = hexToRgb(hex); const d = 255 * amt; return rgbToHex(r + d, g + d, b + d); }
+function mix(a, b, t) { const A = hexToRgb(a), B = hexToRgb(b); return rgbToHex(A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t, A[2] + (B[2] - A[2]) * t); }
 function lum(hex) { const [r, g, b] = hexToRgb(hex).map((v) => v / 255); return 0.2126 * r + 0.7152 * g + 0.0722 * b; }
+// Derive a Material Design 3-flavoured token set from a neutral background (surface)
+// and an accent (primary seed): neutral surfaces get a subtle primary tint, and
+// elevation is expressed as progressively lighter surface-container tones.
 function applyTheme(bg, accent) {
   const light = lum(bg) > 0.55;
-  const d = light ? -1 : 1;
   const [ar, ag, ab] = hexToRgb(accent);
+  const edge = light ? '#0b0d0c' : '#ffffff';                  // lighten (dark scheme) / darken (light)
+  const lift = (amt) => mix(bg, edge, amt);
+  const surf = (amt, tint) => mix(lift(amt), accent, tint);    // tinted surface-container
   const vars = {
-    '--bg': bg,
-    '--bg-2': shift(bg, d * 0.025),
-    '--surface': shift(bg, d * 0.06),
-    '--surface-2': shift(bg, d * 0.1),
-    '--surface-3': shift(bg, d * 0.16),
-    '--text': light ? '#16181f' : '#ececf6',
-    '--muted': light ? '#5b6270' : '#8b8ca6',
-    '--line': light ? 'rgba(0,0,0,0.09)' : 'rgba(255,255,255,0.07)',
-    '--line-2': light ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.13)',
-    '--accent': accent,
-    '--accent-hover': shift(accent, light ? -0.06 : 0.1),
-    '--accent-soft': `rgba(${ar},${ag},${ab},${light ? 0.14 : 0.18})`,
-    '--accent-text': light ? shift(accent, -0.18) : shift(accent, 0.3)
+    '--bg': bg,                                                // surface / surface-dim
+    '--bg-2': surf(0.028, 0.03),                               // surface-container-low
+    '--surface': surf(0.06, 0.05),                            // surface-container
+    '--surface-2': surf(0.10, 0.06),                          // surface-container-high
+    '--surface-3': surf(0.15, 0.07),                          // surface-container-highest
+    '--text': light ? '#1a1c1b' : mix('#ffffff', accent, 0.05),           // on-surface
+    '--muted': light ? mix('#3f4a45', accent, 0.06) : mix('#c3ccc7', accent, 0.06), // on-surface-variant
+    '--line': light ? 'rgba(0,0,0,0.14)' : 'rgba(255,255,255,0.11)',      // outline-variant
+    '--line-2': light ? 'rgba(0,0,0,0.28)' : 'rgba(255,255,255,0.22)',    // outline
+    '--accent': accent,                                        // primary
+    '--on-accent': light ? '#ffffff' : mix(accent, '#0a120d', 0.74),      // on-primary
+    '--accent-hover': mix(accent, edge, 0.12),                 // primary hover state
+    '--primary-container': light ? mix(accent, '#ffffff', 0.6) : mix(accent, bg, 0.66),
+    '--on-primary-container': light ? mix(accent, '#0a120d', 0.5) : mix(accent, '#ffffff', 0.66),
+    '--secondary-container': light ? mix(surf(0.06, 0.05), accent, 0.2) : mix(surf(0.10, 0.06), accent, 0.16),
+    '--accent-soft': `rgba(${ar},${ag},${ab},${light ? 0.14 : 0.18})`,    // primary state layer
+    '--accent-text': light ? mix(accent, '#0a120d', 0.4) : mix(accent, '#ffffff', 0.5)
   };
   const css = ':root{' + Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';') + '}';
   let el = document.getElementById('theme-vars');
