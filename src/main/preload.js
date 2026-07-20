@@ -50,7 +50,7 @@ contextBridge.exposeInMainWorld('nebula', {
   modsToggle: (id, filename) => invoke('mods:toggle', { id, filename }),
   // Admin
   adminConfig: () => invoke('admin:config'),
-  adminSetConfig: (base, token) => invoke('admin:setConfig', { base, token }),
+  adminSetConfig: (repo, token) => invoke('admin:setConfig', { repo, token }),
   adminVerify: () => invoke('admin:verify'),
   adminList: () => invoke('admin:list'),
   adminSave: (pack) => invoke('admin:save', pack),

@@ -28,12 +28,11 @@ const { fetchJson } = require('./download');
 const store = require('./store');
 
 // ===========================================================================
-// >>> ВСТАВ СЮДИ URL СВОГО packs.json (GitHub raw). Його бачитимуть УСІ. <<<
-// Приклад: https://raw.githubusercontent.com/ТВІЙ-ЛОГІН/nebula-packs/main/packs.json
-// Поки тут USERNAME - вбудований репозиторій просто ігнорується (без помилок).
+// Вбудований публічний маніфест: packs.json лежить у GitHub-репозиторії і
+// редагується з адмін-панелі лаунчера (GitHub Contents API). Його бачать УСІ.
 // ===========================================================================
 const BUILTIN_REPOS = [
-  'https://moments.zadrypanka.xyz/launcher/packs.json'
+  'https://raw.githubusercontent.com/mushraisin/Nebula/main/packs.json'
 ];
 
 function isPlaceholder(url) {

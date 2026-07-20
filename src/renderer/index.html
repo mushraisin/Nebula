@@ -293,12 +293,13 @@
 
           <section class="set-pane" id="set-admin">
             <div class="set-card">
-              <div class="set-card-title">Керування збірками на сайті</div>
-              <div class="field"><label>Адмін-API</label><input type="text" id="admin-base" placeholder="https://moments.zadrypanka.xyz/launcher" /></div>
-              <div class="field"><label>Адмін-токен</label>
-                <div class="row"><input type="password" id="admin-token" placeholder="LAUNCHER_ADMIN_TOKEN" /><button class="btn-soft" id="admin-verify-btn">Перевірити</button></div>
+              <div class="set-card-title">Публікація збірок (GitHub)</div>
+              <div class="field"><label>Репозиторій (owner/repo)</label><input type="text" id="admin-base" placeholder="mushraisin/Nebula" /></div>
+              <div class="field"><label>GitHub-токен (Contents: read and write)</label>
+                <div class="row"><input type="password" id="admin-token" placeholder="github_pat_..." /><button class="btn-soft" id="admin-verify-btn">Перевірити</button></div>
                 <span class="hint" id="admin-status"></span>
               </div>
+              <p class="hint">Збірки зберігаються у <b>packs.json</b> цього репозиторію — саме звідти їх бачать усі користувачі.</p>
             </div>
           </section>
         </div>

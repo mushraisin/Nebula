@@ -24,8 +24,12 @@ function defaults() {
     accounts: [],            // [{ id, kind, name, uuid, token? }]
     activeAccountId: null,   // id of the account used for launching
     closeOnLaunch: false,
-    adminApiBase: 'https://moments.zadrypanka.xyz/launcher', // admin CRUD endpoint
-    adminToken: '',          // LAUNCHER_ADMIN_TOKEN (admin only)
+    // Packs are published as a packs.json file in a GitHub repo; the admin panel
+    // edits it through the GitHub Contents API using a personal access token.
+    ghRepo: 'mushraisin/Nebula',
+    ghBranch: 'main',
+    ghPath: 'packs.json',
+    adminToken: '',          // GitHub PAT with Contents: read+write (admin only)
     discordClientId: '',     // Discord application id for Rich Presence (optional)
     liquidGlass: false,      // frosted-glass panels (default off = solid/opaque surfaces)
     theme: { bg: '#0f1512', accent: '#4fd488' } // user-customizable colors

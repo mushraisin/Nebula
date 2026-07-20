@@ -621,13 +621,13 @@ $('open-settings').onclick = async () => {
   state.theme = s.theme || DEFAULT_THEME;
   setThemeInputs(state.theme); renderPresets();
   const ac = await api.adminConfig();
-  $('admin-base').value = ac.base || ''; $('admin-token').value = ''; $('admin-token').placeholder = ac.hasToken ? '••••••• (збережено)' : 'LAUNCHER_ADMIN_TOKEN'; $('admin-status').textContent = '';
+  $('admin-base').value = ac.repo || ''; $('admin-token').value = ''; $('admin-token').placeholder = ac.hasToken ? '••••••• (збережено)' : 'github_pat_...'; $('admin-status').textContent = '';
   renderRepoManage(); openModal('settings-modal');
 };
-async function saveAdminConfig() { const base = $('admin-base').value.trim(); const tok = $('admin-token').value.trim(); await api.adminSetConfig(base, tok ? tok : null); }
+async function saveAdminConfig() { const repo = $('admin-base').value.trim(); const tok = $('admin-token').value.trim(); await api.adminSetConfig(repo, tok ? tok : null); }
 $('admin-verify-btn').onclick = async () => {
   await saveAdminConfig(); $('admin-status').textContent = 'Перевірка...';
-  try { await api.adminVerify(); $('admin-status').textContent = '✓ Токен дійсний'; await refreshAdminButton(); }
+  try { const r = await api.adminVerify(); $('admin-status').textContent = `✓ Доступ є: ${r.repo} (${r.path})`; await refreshAdminButton(); }
   catch (e) { $('admin-status').textContent = '✗ ' + e.message; }
 };
 $('mem-min').oninput = (e) => $('mem-min-val').textContent = e.target.value;
@@ -900,7 +900,7 @@ async function openModPage(projectId) {
 // Lightweight, safe Markdown -> HTML for mod descriptions.
 function mdToHtml(md) {
   md = String(md || '');
-  const tok = []; const stash = (html) => { tok.push(html); return ` T${tok.length - 1} `; };
+  const tok = []; const stash = (html) => { tok.push(html); return `\uE000T${tok.length - 1}\uE000`; };
   md = md.replace(/```([\s\S]*?)```/g, (m, c) => stash('<pre>' + esc(c.replace(/^\w*\n/, '')) + '</pre>'));
   md = md.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, (m, a, u) => stash(`<img class="md-img" src="${esc(u)}" alt="${esc(a)}" loading="lazy">`));
   md = md.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (m, t, u) => stash(`<span class="md-link" data-link="${esc(u)}">${esc(t)}</span>`));
@@ -918,7 +918,7 @@ function mdToHtml(md) {
     closeList(); out.push('<p>' + line + '</p>');
   }
   closeList();
-  return out.join('').replace(/ T(\d+) /g, (m, i) => tok[+i]);
+  return out.join('').replace(/\uE000T(\d+)\uE000/g, (m, i) => tok[+i]);
 }
 async function loadInstalledMods(id) {
   const box = $('mods-installed');

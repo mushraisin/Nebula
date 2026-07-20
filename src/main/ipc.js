@@ -66,12 +66,14 @@ function register() {
 
   // ---- Admin (site launcher CRUD) ----
   ipcMain.handle('admin:config', async () => ({
-    base: store.get('adminApiBase'),
+    repo: store.get('ghRepo') || '',
+    branch: store.get('ghBranch') || 'main',
+    path: store.get('ghPath') || 'packs.json',
     hasToken: !!store.get('adminToken')
   }));
-  ipcMain.handle('admin:setConfig', async (_e, { base, token }) => {
+  ipcMain.handle('admin:setConfig', async (_e, { repo, token }) => {
     store.update((c) => {
-      if (base != null) c.adminApiBase = base;
+      if (repo != null) c.ghRepo = repo;
       if (token != null) c.adminToken = token;
     });
     return true;
