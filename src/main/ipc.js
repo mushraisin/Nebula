@@ -179,7 +179,7 @@ function register() {
     return true;
   });
   ipcMain.handle('updater:restart', () => {
-    try { require('electron-updater').autoUpdater.quitAndInstall(); } catch { /* not packaged */ }
+    try { require('./updater').applyAndRestart(); } catch { /* not packaged */ }
     return true;
   });
 

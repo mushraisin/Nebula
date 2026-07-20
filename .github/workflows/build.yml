@@ -33,6 +33,17 @@ jobs:
         # provider (it is download-only); the Release step below handles upload.
         run: npx electron-builder --win --publish never
 
+      # Manifest for the launcher's installer-free self-update (zip swap).
+      - name: Generate portable update manifest
+        run: |
+          $ver = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $zip = Get-Item "release/Nebula-Setup-$ver.zip"
+          $hash = (Get-FileHash $zip.FullName -Algorithm SHA512).Hash.ToLower()
+          $json = [ordered]@{ version = $ver; zip = $zip.Name; sha512 = $hash; size = $zip.Length } | ConvertTo-Json
+          # UTF-8 *without* BOM - a BOM would break JSON.parse in the launcher
+          [System.IO.File]::WriteAllText("$PWD/release/portable.json", $json, [System.Text.UTF8Encoding]::new($false))
+          Get-Content release/portable.json
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -41,6 +52,7 @@ jobs:
             release/Nebula-Setup-*.exe
             release/Nebula-Setup-*.exe.blockmap
             release/Nebula-Setup-*.zip
+            release/portable.json
             release/latest.yml
           if-no-files-found: error
 
@@ -54,6 +66,7 @@ jobs:
             release/Nebula-Setup-*.exe
             release/Nebula-Setup-*.exe.blockmap
             release/Nebula-Setup-*.zip
+            release/portable.json
             release/latest.yml
 
       # Keep only the release for the tag that was just built.
