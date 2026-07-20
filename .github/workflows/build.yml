@@ -40,6 +40,7 @@ jobs:
           path: |
             release/Nebula-Setup-*.exe
             release/Nebula-Setup-*.exe.blockmap
+            release/Nebula-Setup-*.zip
             release/latest.yml
           if-no-files-found: error
 
@@ -52,4 +53,20 @@ jobs:
           files: |
             release/Nebula-Setup-*.exe
             release/Nebula-Setup-*.exe.blockmap
+            release/Nebula-Setup-*.zip
             release/latest.yml
+
+      # Keep only the release for the tag that was just built.
+      - name: Prune older releases
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $keep = "${{ github.ref_name }}"
+          gh release list --limit 200 --json tagName --jq ".[].tagName" | ForEach-Object {
+            $tag = $_.Trim()
+            if ($tag -and $tag -ne $keep) {
+              Write-Host "deleting release $tag"
+              gh release delete $tag --yes --cleanup-tag
+            }
+          }
