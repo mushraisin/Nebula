@@ -1,4 +1,19 @@
 {
   "name": "Збірки Nebula",
-  "packs": []
+  "packs": [
+    {
+      "id": "3lion",
+      "name": "3lion",
+      "version": "2.0.0",
+      "gameVersion": "1.21.1",
+      "loader": "neoforge",
+      "mrpack": "https://drive.google.com/file/d/11y4tvFKGGY611kpENt7Vb_lxJ4dpfycC/view",
+      "summary": "",
+      "icon": "https://i.imgur.com/Axby1NM.png",
+      "description": "",
+      "media": [],
+      "changelog": "",
+      "featured": true
+    }
+  ]
 }
