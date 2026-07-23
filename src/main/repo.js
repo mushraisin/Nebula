@@ -40,7 +40,10 @@ function isPlaceholder(url) {
 }
 
 async function fetchRepo(url) {
-  const data = await fetchJson(url);
+  // Cache-buster so GitHub raw's CDN edge cache (~5 min) can't hide a just-edited
+  // manifest; combined with no-store this always pulls the latest packs.json.
+  const bust = url + (url.includes('?') ? '&' : '?') + '_=' + Date.now();
+  const data = await fetchJson(bust);
   const packs = (data.packs || []).map((p) => ({
     id: p.id,
     name: p.name || p.id,
@@ -53,6 +56,7 @@ async function fetchRepo(url) {
     media: Array.isArray(p.media) ? p.media : [],
     changelog: p.changelog || '',
     featured: !!p.featured,
+    effect: p.effect || '',
     mrpack: p.mrpack,
     repoUrl: url,
     repoName: data.name || url

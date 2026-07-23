@@ -251,6 +251,70 @@ button:focus:not(:focus-visible), input:focus:not(:focus-visible), select:focus:
 .fh-detail:active { transform: scale(.97); }
 .rest-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
 
+/* ---------- Featured card ambient effects ---------- */
+.fh-fx { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; border-radius: inherit; }
+.fh-fx span { position: absolute; }
+/* fire / embers */
+.fx-heat { left: 0; right: 0; bottom: 0; height: 62%; mix-blend-mode: screen;
+  background: radial-gradient(120% 100% at 50% 130%, rgba(255,140,30,.6), rgba(255,60,0,.22) 42%, transparent 70%);
+  animation: fxHeat 2.1s ease-in-out infinite; }
+@keyframes fxHeat { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+.ember { bottom: -8px; width: var(--s); height: var(--s); border-radius: 50%; mix-blend-mode: screen;
+  background: radial-gradient(circle, #ffe08a, #ff6a00 55%, transparent 72%); box-shadow: 0 0 9px #ff7a1a;
+  animation: fxEmber var(--d) ease-in infinite; }
+@keyframes fxEmber { 0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; } 12% { opacity: 1; } 75% { opacity: .85; } 100% { transform: translateY(-185px) translateX(var(--x)) scale(.25); opacity: 0; } }
+/* sparks */
+.spark { width: 3px; height: 3px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px #8fe6ff, 0 0 11px #4fd4ff;
+  animation: fxSpark var(--d) ease-out infinite; }
+@keyframes fxSpark { 0% { opacity: 0; transform: rotate(var(--a)) translateX(0) scale(.4); } 15% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--a)) translateX(28px) scale(.2); } }
+/* rain / lightning drops */
+.drop { top: -24px; width: 1.5px; height: var(--h); opacity: var(--o, .5); background: linear-gradient(transparent, rgba(160,190,255,.9));
+  animation: fxRain var(--d) linear infinite; }
+@keyframes fxRain { to { transform: translateY(250px); } }
+.fx-flash { inset: 0; opacity: 0; mix-blend-mode: screen;
+  background: radial-gradient(120% 90% at 50% -10%, rgba(200,220,255,.9), transparent 60%); animation: fxFlash 7s steps(1) infinite; }
+@keyframes fxFlash { 0%,100% { opacity: 0; } 1% { opacity: .95; } 3% { opacity: .15; } 5% { opacity: .8; } 7% { opacity: 0; } 40% { opacity: 0; } 41% { opacity: .7; } 43% { opacity: 0; } }
+/* snow */
+.snowf { top: -10px; width: var(--s); height: var(--s); border-radius: 50%; background: #fff; opacity: var(--o); box-shadow: 0 0 4px #fff;
+  animation: fxFall var(--d) linear infinite, fxSway 3s ease-in-out infinite alternate; }
+@keyframes fxFall { from { transform: translateY(-10px); } to { transform: translateY(235px); } }
+@keyframes fxSway { from { margin-left: calc(var(--x) * -1); } to { margin-left: var(--x); } }
+/* stars */
+.starp { width: var(--s); height: var(--s); border-radius: 50%; background: #fff; box-shadow: 0 0 6px #fff; animation: fxTwinkle var(--d) ease-in-out infinite; }
+@keyframes fxTwinkle { 0%,100% { opacity: .12; transform: scale(.5); } 50% { opacity: 1; transform: scale(1); } }
+/* leaves */
+.leafp { top: -18px; width: var(--s); height: var(--s); background: var(--accent); opacity: var(--o);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M26 5C13 5 6 12 6 23c0 2 1 4 1 4s2-7 9-11c-5 5-7 9-7 11 9 2 18-5 18-17 0-3-1-6-1-6z' fill='%23000'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M26 5C13 5 6 12 6 23c0 2 1 4 1 4s2-7 9-11c-5 5-7 9-7 11 9 2 18-5 18-17 0-3-1-6-1-6z' fill='%23000'/%3E%3C/svg%3E") center/contain no-repeat;
+  animation: fxLeafFall var(--d) linear infinite, fxSway 2.6s ease-in-out infinite alternate; }
+@keyframes fxLeafFall { from { transform: translateY(-18px) rotate(0); } to { transform: translateY(232px) rotate(230deg); } }
+/* bubbles */
+.bub { bottom: -26px; width: var(--s); height: var(--s); border-radius: 50%; opacity: var(--o); border: 1px solid rgba(255,255,255,.55);
+  background: radial-gradient(circle at 34% 30%, rgba(255,255,255,.55), transparent 62%); animation: fxBub var(--d) ease-in infinite, fxSway 2.2s ease-in-out infinite alternate; }
+@keyframes fxBub { from { transform: translateY(0); } to { transform: translateY(-245px); } }
+/* magic / gold sparkles */
+.sparkle { --c: #d9c6ff; width: var(--s); height: var(--s); background: var(--c); box-shadow: 0 0 7px var(--c);
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); animation: fxSparkle var(--d) ease-in-out infinite; }
+.sparkle.gold { --c: #ffd76a; }
+@keyframes fxSparkle { 0%,100% { opacity: 0; transform: scale(.25) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(90deg); } }
+/* matrix */
+.mcol { top: -40px; width: 2px; height: 42px; opacity: var(--o); background: linear-gradient(transparent, var(--accent)); box-shadow: 0 0 7px var(--accent);
+  animation: fxMatrix var(--d) linear infinite; }
+@keyframes fxMatrix { to { transform: translateY(255px); } }
+/* aurora (pure CSS) */
+.fx-aurora::before, .fx-aurora::after { content: ''; position: absolute; left: -20%; right: -20%; filter: blur(26px); mix-blend-mode: screen; }
+.fx-aurora::before { top: -34%; height: 92%; opacity: .7; animation: fxAurora 9s ease-in-out infinite alternate;
+  background: linear-gradient(90deg, transparent, rgba(80,220,160,.55), rgba(120,130,255,.45), rgba(80,220,255,.5), transparent); }
+.fx-aurora::after { top: -18%; height: 80%; opacity: .5; animation: fxAurora 13s ease-in-out infinite alternate-reverse;
+  background: linear-gradient(90deg, transparent, rgba(180,120,255,.45), rgba(80,255,200,.4), transparent); }
+@keyframes fxAurora { 0% { transform: translateX(-9%) skewX(-7deg) scaleY(1); } 100% { transform: translateX(9%) skewX(7deg) scaleY(1.25); } }
+/* neon (pure CSS) */
+.fx-neon { border-radius: inherit; animation: fxNeon 1.9s ease-in-out infinite; }
+@keyframes fxNeon {
+  0%,100% { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent); }
+  50% { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 42px color-mix(in srgb, var(--accent) 78%, transparent); }
+}
+
 .home.has-featured { gap: 12px; padding-top: 20px; padding-bottom: 16px; }
 .home.has-featured .home-head h1 { font-size: 24px; }
 .home.has-featured .home-sub { font-size: 12.5px; margin-top: 2px; }

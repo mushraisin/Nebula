@@ -24,12 +24,12 @@ const agentFor = (u) => (u.protocol === 'http:' ? httpAgent : httpsAgent);
 // Small JSON/text still use fetch (tiny payloads; corruption there surfaces as
 // a parse error immediately).
 async function fetchJson(url) {
-  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  const res = await fetch(url, { headers: { 'User-Agent': UA, 'Cache-Control': 'no-cache' }, cache: 'no-store' });
   if (!res.ok) throw new Error(`GET ${url} -> ${res.status}`);
   return res.json();
 }
 async function fetchText(url) {
-  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  const res = await fetch(url, { headers: { 'User-Agent': UA, 'Cache-Control': 'no-cache' }, cache: 'no-store' });
   if (!res.ok) throw new Error(`GET ${url} -> ${res.status}`);
   return res.text();
 }

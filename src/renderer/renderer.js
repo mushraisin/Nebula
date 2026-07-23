@@ -245,7 +245,7 @@ function buildCatalog() {
       gameVersion: inst?.gameVersion || rp.gameVersion || '', loaderType: inst?.loaderType || rp.loader || '',
       loaderVersion: inst?.loaderVersion || '',
       description: rp.description || '', media: Array.isArray(rp.media) ? rp.media : [], changelog: rp.changelog || '',
-      featured: !!rp.featured,
+      featured: !!rp.featured, effect: rp.effect || '',
       installed: !!inst, updatable: !!inst && !!rp.version && inst.version !== rp.version,
       repoPack: rp, pack: inst || null
     });
@@ -356,6 +356,7 @@ function renderFeaturedHero(hero, e) {
   hero.innerHTML = `
     <div class="fh-bg" ${e.icon ? `style="background-image:url('${e.icon}')"` : ''}></div>
     <div class="fh-veil"></div>
+    <div class="fh-fx" id="fh-fx"></div>
     <div class="fh-badge">★ Головна збірка</div>
     ${statusBadge(e)}
     <div class="fh-inner">
@@ -367,8 +368,69 @@ function renderFeaturedHero(hero, e) {
         <button class="fh-detail" data-fdetail>Детально <span class="cd-arrow">→</span></button>
       </div>
     </div>`;
+  buildHeroEffect(hero.querySelector('#fh-fx'), e.effect);
   hero.onclick = () => setSelected(e.id);
   hero.querySelector('[data-fdetail]').onclick = (ev) => { ev.stopPropagation(); setSelected(e.id); openDetail(e, hero); };
+}
+
+// Ambient card effects for the featured pack. Pure CSS animations; particle
+// counts/positions are randomised here. Adds fx-<name> to the overlay and,
+// for particle effects, spawns the particles.
+const HERO_EFFECTS = new Set(['fire', 'embers', 'sparks', 'lightning', 'snow', 'rain', 'stars', 'aurora', 'neon', 'leaves', 'bubbles', 'gold', 'magic', 'matrix']);
+function buildHeroEffect(box, effect) {
+  if (!box) return;
+  box.className = 'fh-fx';
+  box.innerHTML = '';
+  if (!effect || !HERO_EFFECTS.has(effect)) return;
+  box.classList.add('fx-' + effect);
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const spawn = (cls, n, style) => {
+    let html = '';
+    for (let i = 0; i < n; i++) html += `<span class="${cls}" style="${style(i)}"></span>`;
+    box.insertAdjacentHTML('beforeend', html);
+  };
+  switch (effect) {
+    case 'fire':
+      box.insertAdjacentHTML('beforeend', '<span class="fx-heat"></span>');
+      spawn('ember', 26, () => `left:${rnd(0, 100)}%;--s:${rnd(3, 8)}px;--d:${rnd(1.6, 3.4)}s;--x:${rnd(-30, 30)}px;animation-delay:${rnd(-3, 0)}s`);
+      break;
+    case 'embers':
+      spawn('ember', 16, () => `left:${rnd(0, 100)}%;--s:${rnd(2, 5)}px;--d:${rnd(3, 6)}s;--x:${rnd(-24, 24)}px;animation-delay:${rnd(-5, 0)}s`);
+      break;
+    case 'sparks':
+      spawn('spark', 22, () => `left:${rnd(0, 100)}%;top:${rnd(0, 100)}%;--d:${rnd(.5, 1.4)}s;--a:${rnd(0, 360)}deg;animation-delay:${rnd(-1.5, 0)}s`);
+      break;
+    case 'lightning':
+      box.insertAdjacentHTML('beforeend', '<span class="fx-flash"></span>');
+      spawn('drop', 40, () => `left:${rnd(0, 100)}%;--d:${rnd(.5, .9)}s;--h:${rnd(12, 22)}px;animation-delay:${rnd(-1, 0)}s`);
+      break;
+    case 'snow':
+      spawn('snowf', 34, () => `left:${rnd(0, 100)}%;--s:${rnd(2, 6)}px;--d:${rnd(5, 11)}s;--x:${rnd(-30, 30)}px;--o:${rnd(.4, .9)};animation-delay:${rnd(-10, 0)}s`);
+      break;
+    case 'rain':
+      spawn('drop', 48, () => `left:${rnd(0, 100)}%;--d:${rnd(.5, 1)}s;--h:${rnd(14, 26)}px;--o:${rnd(.3, .7)};animation-delay:${rnd(-1, 0)}s`);
+      break;
+    case 'stars':
+      spawn('starp', 34, () => `left:${rnd(0, 100)}%;top:${rnd(0, 100)}%;--s:${rnd(1, 3)}px;--d:${rnd(1.4, 3.6)}s;animation-delay:${rnd(-3, 0)}s`);
+      break;
+    case 'leaves':
+      spawn('leafp', 16, () => `left:${rnd(0, 100)}%;--s:${rnd(9, 16)}px;--d:${rnd(5, 10)}s;--x:${rnd(-40, 40)}px;--o:${rnd(.35, .8)};animation-delay:${rnd(-8, 0)}s`);
+      break;
+    case 'bubbles':
+      spawn('bub', 20, () => `left:${rnd(0, 100)}%;--s:${rnd(6, 20)}px;--d:${rnd(4, 8)}s;--x:${rnd(-20, 20)}px;--o:${rnd(.2, .5)};animation-delay:${rnd(-7, 0)}s`);
+      break;
+    case 'magic':
+      spawn('sparkle', 22, () => `left:${rnd(0, 100)}%;top:${rnd(0, 100)}%;--s:${rnd(6, 14)}px;--d:${rnd(1.6, 3.2)}s;animation-delay:${rnd(-3, 0)}s`);
+      break;
+    case 'gold':
+      spawn('sparkle gold', 18, () => `left:${rnd(0, 100)}%;top:${rnd(0, 100)}%;--s:${rnd(5, 12)}px;--d:${rnd(1.6, 3)}s;animation-delay:${rnd(-3, 0)}s`);
+      break;
+    case 'matrix':
+      spawn('mcol', 24, () => `left:${rnd(0, 100)}%;--d:${rnd(2, 5)}s;--o:${rnd(.25, .7)};animation-delay:${rnd(-5, 0)}s`);
+      break;
+    // aurora & neon are pure-CSS (no particles) — the fx-<name> class handles them
+    default: break;
+  }
 }
 $('car-prev').onclick = () => { if (state.page > 0) { state.page--; renderHome(); } };
 $('car-next').onclick = () => { const pages = Math.ceil(carouselList().length / PER_PAGE); if (state.page < pages - 1) { state.page++; renderHome(); } };
@@ -723,10 +785,11 @@ function fillAdminForm(p) {
   $('af-media').value = Array.isArray(p.media) ? p.media.join('\n') : (p.media || '');
   $('af-changelog').value = p.changelog || '';
   $('af-featured').checked = !!p.featured;
+  $('af-effect').value = p.effect || '';
 }
 function clearAdminForm() {
   ['af-name', 'af-id', 'af-version', 'af-gv', 'af-mrpack', 'af-summary', 'af-icon', 'af-description', 'af-media', 'af-changelog'].forEach((k) => { $(k).value = ''; });
-  $('af-loader').value = ''; $('af-featured').checked = false;
+  $('af-loader').value = ''; $('af-featured').checked = false; $('af-effect').value = '';
 }
 $('admin-clear-btn').onclick = clearAdminForm;
 $('admin-save-btn').onclick = async () => {
@@ -737,7 +800,8 @@ $('admin-save-btn').onclick = async () => {
     description: $('af-description').value.trim(),
     media: $('af-media').value.split('\n').map((s) => s.trim()).filter(Boolean),
     changelog: $('af-changelog').value,
-    featured: $('af-featured').checked
+    featured: $('af-featured').checked,
+    effect: $('af-effect').value
   };
   if (!pack.name) { toast('Вкажи назву', 'error'); return; }
   if (!pack.mrpack) { toast('Вкажи посилання на .mrpack', 'error'); return; }
