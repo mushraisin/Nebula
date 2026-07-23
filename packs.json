@@ -4,16 +4,17 @@
     {
       "id": "3lion",
       "name": "3lion",
-      "version": "2.12",
+      "version": "2.13.dev",
       "gameVersion": "1.21.1",
       "loader": "neoforge",
-      "mrpack": "https://drive.google.com/file/d/1nVSU_9fdZJHjtpkNvJQhmPo-ui2P5FXh/view?usp=sharing",
+      "mrpack": "https://drive.usercontent.google.com/download?id=1AjHASBSyiP70RWAsipkI4Zspsw91jXn3&export=download&authuser=0",
       "summary": "",
       "icon": "https://i.imgur.com/KISdsRr.jpeg",
       "description": "",
       "media": [],
       "changelog": "",
-      "featured": true
+      "featured": true,
+      "effect": "fire"
     }
   ]
 }
