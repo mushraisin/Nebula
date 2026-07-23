@@ -12,15 +12,47 @@ const paths = require('./paths');
 const javaMod = require('./java');
 const { fetchJson } = require('./download');
 const { install, installForge, installNeoForged } = require('@xmcl/installer');
-const { createDefaultRetryHandler } = require('@xmcl/file-transfer');
+const { createDefaultRetryHandler, resolveAgent } = require('@xmcl/file-transfer');
+const { Agent } = require('undici');
 
-// Download options for XMCL: retry each file, and keep concurrency modest so
-// flaky networks don't drop dozens of parallel connections at once.
-function xmclOpts() {
+// Downloader for the XMCL installers (Minecraft base + Forge/NeoForge).
+//
+// Two things this fixes:
+//  1. Stalls. Without explicit timeouts a single hung connection (flaky wifi,
+//     ISP throttling, a dead Mojang CDN edge) leaves the whole install waiting
+//     forever with no error and no progress. The timeouts turn a stall into an
+//     error, which the retry handler can then actually retry.
+//  2. Retries. `retryHandler` is an *agent* option - passing it as a top-level
+//     download option (as before) silently did nothing.
+//
+// It also reports how many files are done, so a slow-but-alive download no
+// longer looks frozen.
+function createDownloader(onStatus) {
+  const dispatcher = new Agent({
+    connect: { timeout: 15000 },   // TCP/TLS handshake
+    headersTimeout: 30000,         // server went quiet before responding
+    bodyTimeout: 60000,            // transfer stalled mid-file
+    connections: 24
+  });
+  const agent = resolveAgent({ dispatcher, retryHandler: createDefaultRetryHandler(5) });
+
+  let label = 'Завантаження', done = 0, lastTick = 0;
+  const dispatch = agent.dispatch.bind(agent);
+  agent.dispatch = async (...args) => {
+    const res = await dispatch(...args);
+    done++;
+    const now = Date.now();
+    if (now - lastTick > 300) { lastTick = now; onStatus(`${label}: ${done} файлів...`); }
+    return res;
+  };
+
   return {
-    assetsDownloadConcurrency: 16,
-    librariesDownloadConcurrency: 16,
-    retryHandler: createDefaultRetryHandler(5)
+    // Options for one install step; resets the per-step file counter.
+    opts(stepLabel) {
+      if (stepLabel) { label = stepLabel; done = 0; }
+      return { agent, assetsDownloadConcurrency: 12, librariesDownloadConcurrency: 8 };
+    },
+    close() { try { dispatcher.destroy(); } catch { /* already closed */ } }
   };
 }
 
@@ -103,26 +135,29 @@ async function installLoader(loader, onStatus = () => {}) {
   }
 
   if (loader.type === 'forge' || loader.type === 'neoforge') {
-    // 1. Vanilla base (jar + libraries + assets) is required by the installer.
-    onStatus(`Завантаження Minecraft ${loader.mc} (файли + ресурси)...`);
-    const meta = await javaMod.versionMeta(loader.mc);
-    await withRetry('Minecraft', () => install(meta, shared, xmclOpts()), onStatus);
+    const dl = createDownloader(onStatus);
+    try {
+      // 1. Vanilla base (jar + libraries + assets) is required by the installer.
+      onStatus(`Завантаження Minecraft ${loader.mc} (файли + ресурси)...`);
+      const meta = await javaMod.versionMeta(loader.mc);
+      await withRetry('Minecraft', () => install(meta, shared, dl.opts(`Minecraft ${loader.mc}`)), onStatus);
 
-    // 2. Java is needed to run the loader's post-processors.
-    const { javaPath } = await javaMod.ensureJava(loader.mc, onStatus);
+      // 2. Java is needed to run the loader's post-processors.
+      const { javaPath } = await javaMod.ensureJava(loader.mc, onStatus);
 
-    // 3. Run the official installer -> returns the installed version id.
-    onStatus(`Встановлення ${loader.type} ${loader.version}...`);
-    let id;
-    if (loader.type === 'neoforge') {
-      const t = neoTarget(loader);
-      id = await withRetry(loader.type,
-        () => installNeoForged(t.project, t.version, shared, { java: javaPath, ...xmclOpts() }), onStatus);
-    } else {
-      id = await withRetry('forge',
-        () => installForge({ mcversion: loader.mc, version: loader.version }, shared, { java: javaPath, ...xmclOpts() }), onStatus);
-    }
-    return { versionNumber: loader.mc, customVersionId: id, engine: 'xmcl' };
+      // 3. Run the official installer -> returns the installed version id.
+      onStatus(`Встановлення ${loader.type} ${loader.version}...`);
+      let id;
+      if (loader.type === 'neoforge') {
+        const t = neoTarget(loader);
+        id = await withRetry(loader.type,
+          () => installNeoForged(t.project, t.version, shared, { java: javaPath, ...dl.opts(loader.type) }), onStatus);
+      } else {
+        id = await withRetry('forge',
+          () => installForge({ mcversion: loader.mc, version: loader.version }, shared, { java: javaPath, ...dl.opts('forge') }), onStatus);
+      }
+      return { versionNumber: loader.mc, customVersionId: id, engine: 'xmcl' };
+    } finally { dl.close(); }
   }
 
   throw new Error(`Невідомий лоадер: ${loader.type}`);

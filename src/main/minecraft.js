@@ -35,7 +35,10 @@ async function launchMclc(pack, javaPath, { onStatus, onProgress, onLog, onClose
     javaPath,
     version: { number: pack.gameVersion, type: 'release', custom: pack.customVersionId || undefined },
     memory: { max: `${mem.max}M`, min: `${mem.min}M` },
-    overrides: { gameDirectory: pack.dir, detached: true }
+    // MCLC defaults to maxSockets:2 — with thousands of asset files that crawls
+    // and looks frozen. timeout turns a stalled request into a retry.
+    timeout: 30000,
+    overrides: { gameDirectory: pack.dir, detached: true, maxSockets: 16 }
   };
   const extra = jvmExtra();
   if (extra.length) opts.customArgs = extra;

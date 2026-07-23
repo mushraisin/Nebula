@@ -47,9 +47,55 @@ function upsert(acc) {
 function setActive(id) { store.set('activeAccountId', id); }
 
 /* ---------- login ---------- */
+// msmc rejects with { name: <lexcode>, message }. Translate the codes people
+// actually hit into something actionable instead of a raw lexcode.
+const AUTH_ERRORS = {
+  'error.gui.closed': 'Вікно входу закрито — вхід скасовано.',
+  'error.auth.minecraft.entitlements': 'На цьому акаунті немає Minecraft: Java Edition. Перевір, що гра куплена саме на ньому.',
+  'error.auth.minecraft.profile': 'В акаунті ще не створено профіль Minecraft (нік). Створи його на minecraft.net і спробуй знову.',
+  'error.auth.minecraft.login': 'Не вдалось увійти в Minecraft. Спробуй ще раз за кілька хвилин.',
+  'error.auth.xsts.userNotFound': 'До цього акаунта Microsoft не привʼязаний Xbox Live.',
+  'error.auth.xsts.child': 'Дитячий акаунт: потрібна згода дорослого в сімейній групі Microsoft.',
+  'error.auth.xsts.bannedCountry': 'Xbox Live недоступний у цій країні (спробуй без VPN або з іншим регіоном).',
+  'error.auth.xboxLive': 'Не вдалось увійти в Xbox Live.',
+  'error.auth.microsoft': 'Не вдалось увійти в акаунт Microsoft.',
+  'error.state.invalid': 'Вхід перервано (невірний стан). Спробуй ще раз.',
+  'error.auth': 'Помилка авторизації Microsoft.'
+};
+function authError(e) {
+  const code = e && (e.name || e.type);
+  if (typeof code === 'string' && code.startsWith('error')) {
+    const parts = code.split('.');
+    while (parts.length) {                       // walk up: a.b.c -> a.b -> a
+      const hit = AUTH_ERRORS[parts.join('.')];
+      if (hit) return new Error(hit);
+      parts.pop();
+    }
+  }
+  const msg = String((e && (e.message || e.reason)) || e || 'невідома помилка');
+  if (/network|fetch failed|ENOTFOUND|ETIMEDOUT|ECONNRESET|socket|getaddrinfo/i.test(msg))
+    return new Error('Немає звʼязку з серверами Microsoft. Перевір інтернет (або вимкни VPN) і спробуй ще раз.');
+  return new Error(msg);
+}
+// Never leave the UI waiting forever on a stuck auth step.
+function withTimeout(p, ms, msg) {
+  let t;
+  return Promise.race([
+    Promise.resolve(p).finally(() => clearTimeout(t)),
+    new Promise((_, rej) => { t = setTimeout(() => rej(new Error(msg)), ms); })
+  ]);
+}
+
 async function login() {
-  const xbox = await authManager.launch('electron');
-  const mc = await xbox.getMinecraft();
+  let xbox, mc;
+  try {
+    xbox = await withTimeout(authManager.launch('electron'), 5 * 60 * 1000,
+      'Час на вхід вичерпано. Закрий вікно Microsoft і спробуй ще раз.');
+  } catch (e) { throw authError(e); }
+  try {
+    mc = await withTimeout(xbox.getMinecraft(), 60 * 1000,
+      'Microsoft не відповідає на запит профілю Minecraft. Спробуй ще раз.');
+  } catch (e) { throw authError(e); }
   current = buildMicrosoft(mc);
   const acc = { id: 'ms:' + current.uuid, kind: 'microsoft', name: current.name, uuid: current.uuid, token: xbox.save() };
   upsert(acc); setActive(acc.id);
@@ -68,8 +114,15 @@ async function loginOffline(name) {
 async function activate(acc) {
   if (acc.kind === 'offline') { current = buildOffline(acc.name); }
   else {
-    const xbox = await authManager.refresh(acc.token);
-    const mc = await xbox.getMinecraft();
+    let xbox, mc;
+    // A stale/revoked refresh token must fail fast with a readable reason,
+    // otherwise switching accounts just hangs.
+    try {
+      xbox = await withTimeout(authManager.refresh(acc.token), 45 * 1000,
+        'Microsoft не відповідає. Спробуй ще раз або увійди заново.');
+      mc = await withTimeout(xbox.getMinecraft(), 45 * 1000,
+        'Microsoft не відповідає на запит профілю Minecraft.');
+    } catch (e) { throw authError(e); }
     current = buildMicrosoft(mc);
     upsert({ ...acc, name: current.name, uuid: current.uuid, token: xbox.save() });
   }
