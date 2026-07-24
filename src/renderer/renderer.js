@@ -1035,26 +1035,45 @@ api.on((ev) => {
       hideProgress(); refreshPlayButtons(); break;
     case 'launch-error': state.launching = false; state.running = false; state.busyId = null; hideProgress(); refreshPlayButtons(); if (ev.message) showError('Запуск: ' + ev.message); break;
     case 'task-error': if (ev.message) showError('Встановлення: ' + ev.message); break;
-    case 'update-available': toast(`Оновлення лаунчера ${ev.version} завантажується...`, '', 5000); break;
+    case 'update-available': showUpdateProgress(ev.version); break;
+    case 'update-progress': updateUpdateProgress(ev.percent); break;
     case 'update-downloaded': showUpdateReady(ev.version); break;
+    case 'update-error': showUpdateError(ev.message); break;
   }
 });
 
 let updateBanner = null;
+function updBanner() {
+  if (!updateBanner) { updateBanner = document.createElement('div'); $('toast-wrap').appendChild(updateBanner); }
+  return updateBanner;
+}
+function showUpdateProgress(version) {
+  const el = updBanner(); el.className = 'toast';
+  el.innerHTML = `<div><b>Оновлення ${esc(version)}</b></div><div class="hint small" id="upd-pct">Завантаження...</div>
+    <div class="progress-track" style="margin-top:8px"><div class="progress-bar" id="upd-bar" style="width:0%"></div></div>`;
+}
+function updateUpdateProgress(pct) {
+  const bar = document.getElementById('upd-bar'); const lbl = document.getElementById('upd-pct');
+  if (bar) bar.style.width = (pct || 0) + '%';
+  if (lbl) lbl.textContent = `Завантаження: ${pct || 0}%`;
+}
 function showUpdateReady(version) {
-  if (updateBanner) updateBanner.remove();
-  const el = document.createElement('div');
-  el.className = 'toast ok';
-  el.innerHTML = `<div><b>Оновлення ${esc(version)} готове</b></div><div class="hint small">Перезапусти, щоб застосувати (або застосується при виході).</div>`;
+  const el = updBanner(); el.className = 'toast ok';
+  el.innerHTML = `<div><b>Оновлення ${esc(version)} готове</b></div><div class="hint small">Натисни, щоб застосувати й перезапустити.</div>`;
   const b = document.createElement('button');
   b.className = 'btn-primary block'; b.style.marginTop = '10px'; b.textContent = 'Перезапустити й оновити';
-  b.onclick = () => api.updaterRestart();
+  b.onclick = () => { b.disabled = true; b.textContent = 'Застосування...'; api.updaterRestart(); };
   el.appendChild(b);
-  $('toast-wrap').appendChild(el);
-  updateBanner = el;
+}
+function showUpdateError(message) {
+  const el = updBanner(); el.className = 'toast error';
+  el.innerHTML = `<div><b>Оновлення не вдалося</b></div><div class="hint small">${esc(message || '')}</div>`;
+  showError('Оновлення лаунчера: ' + (message || ''));
 }
 
 /* ---------------- Utils ---------------- */
+// Launcher version display uses a two-part ".dev" style: 3.5.0 -> 3.5.dev.
+function verDev(v) { const p = String(v || '').split('.'); return `${p[0] || 0}.${p[1] || 0}.dev`; }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function initials(name) { return String(name || '?').trim().slice(0, 2).toUpperCase(); }
 function plural(n, one, few, many) {
@@ -1083,7 +1102,7 @@ function buildLeaves() {
 /* ---------------- Boot ---------------- */
 (async function boot() {
   buildLeaves();
-  try { const v = await api.appVersion(); state.version = v; $('tb-ver').textContent = 'v' + v; $('set-ver').textContent = 'Nebula v' + v; } catch { /* dev/preview */ }
+  try { const v = await api.appVersion(); state.version = v; const dv = verDev(v); $('tb-ver').textContent = 'v' + dv; $('set-ver').textContent = 'Nebula v' + dv; } catch { /* dev/preview */ }
   try { const s = await api.getSettings(); state.theme = s.theme || DEFAULT_THEME; applyTheme(state.theme.bg, state.theme.accent); state.glass = s.liquidGlass === true; applyGlass(state.glass); } catch { applyTheme(DEFAULT_THEME.bg, DEFAULT_THEME.accent); applyGlass(false); }
   await refreshAccount();
   refreshAdminButton();

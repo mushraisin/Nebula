@@ -95,30 +95,52 @@ async function check() {
 
 // Swap the files and relaunch. Runs a detached helper because the running
 // executable cannot overwrite itself.
+//
+// All paths that may contain non-ASCII (e.g. a Cyrillic Windows username in
+// %TEMP%) are passed to the helper via environment variables, NOT written into
+// the .cmd text — cmd.exe reads batch files in the OEM codepage and would
+// mangle UTF-8 paths, which silently broke the update for such users. The batch
+// body itself is pure ASCII. It also waits for EVERY Nebula.exe (the main
+// process AND Electron's helper processes) to exit, so nothing holds a file
+// lock when robocopy runs.
 function applyAndRestart() {
-  if (!staged || !fs.existsSync(staged)) { app.relaunch(); app.quit(); return true; }
-  const exe = app.getPath('exe');
-  const appDir = path.dirname(exe);
-  const helper = path.join(app.getPath('temp'), 'nebula-apply-update.cmd');
-  const script = [
-    '@echo off',
-    'setlocal',
-    ':wait',
-    `tasklist /FI "PID eq ${process.pid}" 2>nul | find "${process.pid}" >nul`,
-    'if not errorlevel 1 (',
-    '  ping -n 2 127.0.0.1 >nul',
-    '  goto wait',
-    ')',
-    // /E keeps files we do not ship (e.g. the NSIS uninstaller) instead of wiping them
-    `robocopy "${staged}" "${appDir}" /E /R:2 /W:1 /NFL /NDL /NJH /NJS >nul`,
-    `start "" "${exe}"`,
-    `rmdir /s /q "${updateDir()}"`,
-    'del "%~f0"'
-  ].join('\r\n');
-  fs.writeFileSync(helper, script, 'utf8');
-  spawn('cmd.exe', ['/c', helper], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
-  app.quit();
-  return true;
+  try {
+    if (!staged || !fs.existsSync(staged)) { app.relaunch(); app.quit(); return true; }
+    const exe = app.getPath('exe');
+    const exeName = path.basename(exe);
+    const appDir = path.dirname(exe);
+    const helper = path.join(app.getPath('temp'), 'nebula-apply-update.cmd');
+    const log = path.join(app.getPath('temp'), 'nebula-update.log');
+    const script = [
+      '@echo off',
+      'echo [Nebula] applying update > "%NEB_LOG%" 2>&1',
+      ':wait',
+      `tasklist /FI "IMAGENAME eq ${exeName}" 2>nul | find /I "${exeName}" >nul`,
+      'if not errorlevel 1 (',
+      '  ping -n 2 127.0.0.1 >nul',
+      '  goto wait',
+      ')',
+      'ping -n 3 127.0.0.1 >nul',
+      // /E keeps files we do not ship (e.g. the NSIS uninstaller) instead of wiping them
+      'robocopy "%NEB_STAGED%" "%NEB_DIR%" /E /R:8 /W:1 /NFL /NDL /NJH /NJS >> "%NEB_LOG%" 2>&1',
+      'echo robocopy exit %errorlevel% >> "%NEB_LOG%" 2>&1',
+      'start "" "%NEB_EXE%"',
+      'rmdir /s /q "%NEB_UPD%"',
+      'del "%~f0"'
+    ].join('\r\n');
+    fs.writeFileSync(helper, script, 'utf8');
+    spawn('cmd.exe', ['/c', helper], {
+      detached: true, stdio: 'ignore', windowsHide: true,
+      env: { ...process.env, NEB_STAGED: staged, NEB_DIR: appDir, NEB_EXE: exe, NEB_UPD: updateDir(), NEB_LOG: log }
+    }).unref();
+    // Force-exit so the launcher (and its helper processes) actually release the
+    // files; a plain quit() can be cancelled and would leave the helper waiting.
+    setTimeout(() => { try { app.exit(0); } catch { app.quit(); } }, 300);
+    return true;
+  } catch (e) {
+    ipc.emit('update-error', { message: 'Не вдалось застосувати оновлення: ' + String(e.message || e) });
+    return false;
+  }
 }
 
 function init() {
