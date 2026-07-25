@@ -8,6 +8,12 @@
 // relaunches. After the restart the app IS the new version.
 const { app } = require('electron');
 const fs = require('fs');
+// Electron patches `fs` to make paths containing ".asar" behave like virtual
+// archives. When we unpack a release zip that ships a `resources/app.asar.unpacked/`
+// tree, writing those files via the patched fs makes Electron try to open the
+// (not-yet-written) `app.asar` as an archive and throw "Invalid package". `original-fs`
+// is Electron's un-patched fs - use it for all staging file I/O that touches app.asar*.
+const ofs = require('original-fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { pipeline } = require('stream/promises');
@@ -35,16 +41,23 @@ function cmpVersion(a, b) {
 
 async function unzip(file, dest) {
   const zip = await open(file, { lazyEntries: true, autoClose: false });
+  // Belt-and-suspenders: also disable asar virtualization globally while we write
+  // app.asar / app.asar.unpacked so no intermediate fs call reinterprets the path.
+  const prevNoAsar = process.noAsar;
+  process.noAsar = true;
   try {
     const entries = await readAllEntries(zip);
     for (const e of entries) {
       if (e.fileName.endsWith('/')) continue;
       const out = path.join(dest, e.fileName);
-      fs.mkdirSync(path.dirname(out), { recursive: true });
+      ofs.mkdirSync(path.dirname(out), { recursive: true });
       const stream = await openEntryReadStream(zip, e);
-      await pipeline(stream, fs.createWriteStream(out));
+      await pipeline(stream, ofs.createWriteStream(out));
     }
-  } finally { try { zip.close(); } catch { /* ignore */ } }
+  } finally {
+    process.noAsar = prevNoAsar;
+    try { zip.close(); } catch { /* ignore */ }
+  }
 }
 
 function updateDir() { return path.join(app.getPath('temp'), 'nebula-update'); }
@@ -68,8 +81,10 @@ async function check() {
   ipc.emit('update-available', { version: manifest.version });
   try {
     const dir = updateDir();
-    fs.rmSync(dir, { recursive: true, force: true });
-    fs.mkdirSync(dir, { recursive: true });
+    // original-fs: `dir` may contain a stale staging/resources/app.asar from a
+    // previous run; the patched fs would try to read it as an archive while pruning.
+    ofs.rmSync(dir, { recursive: true, force: true });
+    ofs.mkdirSync(dir, { recursive: true });
 
     const zipFile = path.join(dir, manifest.zip);
     await downloadSegmented(`${RELEASE_BASE}/${manifest.zip}`, zipFile, {
@@ -83,8 +98,8 @@ async function check() {
     const staging = path.join(dir, 'staging');
     await unzip(zipFile, staging);
     const exeName = path.basename(app.getPath('exe'));
-    if (!fs.existsSync(path.join(staging, exeName))) throw new Error(`в архіві немає ${exeName}`);
-    fs.rmSync(zipFile, { force: true });
+    if (!ofs.existsSync(path.join(staging, exeName))) throw new Error(`в архіві немає ${exeName}`);
+    ofs.rmSync(zipFile, { force: true });
 
     staged = staging;
     ipc.emit('update-downloaded', { version: manifest.version });
