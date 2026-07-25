@@ -46,6 +46,7 @@ function register() {
     javaArgs: store.get('javaArgs'),
     baseDir: store.get('baseDir'),
     closeOnLaunch: store.get('closeOnLaunch'),
+    verifyBeforeLaunch: store.get('verifyBeforeLaunch') !== false,
     discordClientId: store.get('discordClientId') || '',
     liquidGlass: store.get('liquidGlass') === true,
     theme: store.get('theme') || { bg: '#0f1512', accent: '#4fd488' }
@@ -191,6 +192,27 @@ function register() {
 
     emit('launch-start', { id });
     try {
+      // Verify/repair the pack's files against its source before starting the game.
+      // Non-fatal: if the source is unreachable (offline) we log and launch with
+      // whatever is already on disk, so offline play still works.
+      if (store.get('verifyBeforeLaunch') !== false) {
+        try {
+          emit('launch-status', { id, text: 'Перевірка файлів збірки...' });
+          const r = await packs.verifyPack(id, (pr) => {
+            if (pr.phase === 'files' || pr.phase === 'overrides') {
+              emit('launch-progress', { id, current: pr.current, total: pr.total, label: pr.label });
+            } else if (pr.label) {
+              emit('launch-status', { id, text: pr.label });
+            }
+          });
+          if (r && r.verified && r.stats) {
+            emit('launch-status', { id, text: `Файли перевірено (оновлено ${r.stats.fetched}, без змін ${r.stats.kept})` });
+          }
+        } catch (verr) {
+          emit('launch-log', { id, line: '[перевірка файлів пропущена: ' + String(verr.message || verr) + ']' });
+        }
+      }
+
       await minecraft.launch(pack, {
         onStatus: (text) => emit('launch-status', { id, text }),
         onProgress: (pr) => emit('launch-progress', { id, ...pr }),

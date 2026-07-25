@@ -24,6 +24,7 @@ function defaults() {
     accounts: [],            // [{ id, kind, name, uuid, token? }]
     activeAccountId: null,   // id of the account used for launching
     closeOnLaunch: false,
+    verifyBeforeLaunch: true, // re-sync/repair pack files against the source before each launch
     // Packs are published as a packs.json file in a GitHub repo; the admin panel
     // edits it through the GitHub Contents API using a personal access token.
     ghRepo: 'mushraisin/Nebula',

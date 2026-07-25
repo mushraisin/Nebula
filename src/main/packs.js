@@ -75,6 +75,9 @@ async function installFromFile(mrpackFile, meta = {}, onProgress = () => {}) {
 
 // Download a .mrpack from a URL, then install it.
 async function installFromUrl(url, meta = {}, onProgress = () => {}) {
+  // Remember where a URL-installed pack came from so it can be re-synced/repaired
+  // before launch (repo packs already carry their own source with the mrpack url).
+  if (!meta.source) meta = { ...meta, source: { type: 'url', mrpack: url } };
   const tmp = path.join(paths.tmpDir(), `pack-${Date.now()}.mrpack`);
   onProgress({ phase: 'download', label: 'Завантаження .mrpack...' });
   const mb = (b) => (b / 1048576).toFixed(0) + ' МБ';
@@ -131,6 +134,34 @@ async function createProfile({ name, mc, loader }, onProgress = () => {}) {
   return pack;
 }
 
+// Re-sync an installed pack's files against its source .mrpack, WITHOUT touching
+// the mod loader or shared game files. Used as an integrity/repair pass right
+// before launch: it re-downloads the (small) source .mrpack index, then reuses the
+// incremental installer to repair locally deleted/corrupted files, pull files the
+// source added, and drop files it removed since last time - all judged by sha1/crc32.
+// Returns { verified, stats } or { skipped, reason } for packs with no remote source
+// (custom profiles and local-file installs, which have nothing to sync against).
+async function verifyPack(id, onProgress = () => {}) {
+  const pack = getInstalled(id);
+  if (!pack) throw new Error('Збірку не знайдено');
+  const url = pack.source && pack.source.mrpack;
+  if (!url) return { skipped: true, reason: 'no-source' };
+
+  const tmp = path.join(paths.tmpDir(), `verify-${slug(id)}-${Date.now()}.mrpack`);
+  onProgress({ phase: 'verify', label: 'Перевірка файлів збірки...' });
+  await downloadSegmented(url, tmp, {}); // .mrpack is small (index + overrides), no bar
+  try {
+    const info = await installMrpack(tmp, pack.dir, onProgress, pack.manifest || null);
+    store.update((c) => {
+      const p = c.installed[id];
+      if (p) { p.manifest = info.manifest; p.verifiedAt = Date.now(); }
+    });
+    return { verified: true, stats: info.stats };
+  } finally {
+    fs.rmSync(tmp, { force: true });
+  }
+}
+
 function remove(id) {
   const pack = getInstalled(id);
   if (pack?.dir && fs.existsSync(pack.dir)) {
@@ -164,5 +195,5 @@ async function checkUpdates() {
 
 module.exports = {
   list, getInstalled, installFromFile, installFromUrl, installRepoPack,
-  createProfile, remove, checkUpdates
+  createProfile, verifyPack, remove, checkUpdates
 };

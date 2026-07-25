@@ -678,6 +678,7 @@ $('open-settings').onclick = async () => {
   $('mem-min').value = s.memory.min; $('mem-max').value = s.memory.max;
   $('mem-min-val').textContent = s.memory.min; $('mem-max-val').textContent = s.memory.max;
   $('java-args').value = s.javaArgs || ''; $('close-launch').checked = !!s.closeOnLaunch; $('base-dir').value = s.baseDir;
+  $('verify-launch').checked = s.verifyBeforeLaunch !== false;
   state.glass = s.liquidGlass === true;
   $('glass-switch').classList.toggle('on', state.glass);
   state.theme = s.theme || DEFAULT_THEME;
@@ -700,7 +701,7 @@ $('settings-save').onclick = async () => {
   state.theme = theme;
   const glassOn = $('glass-switch').classList.contains('on');
   state.glass = glassOn;
-  await api.setSettings({ memory: { min, max }, javaArgs: $('java-args').value.trim(), closeOnLaunch: $('close-launch').checked, liquidGlass: glassOn, theme });
+  await api.setSettings({ memory: { min, max }, javaArgs: $('java-args').value.trim(), closeOnLaunch: $('close-launch').checked, verifyBeforeLaunch: $('verify-launch').checked, liquidGlass: glassOn, theme });
   await saveAdminConfig(); await refreshAdminButton(); toast('Збережено', 'ok'); closeSettings(true);
 };
 
