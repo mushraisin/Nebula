@@ -169,6 +169,98 @@ button:focus:not(:focus-visible), input:focus:not(:focus-visible), select:focus:
 .home-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
 .home-head h1 { font-size: 30px; font-weight: 700; letter-spacing: -.2px; }
 .home-sub { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+/* ---- Server IP chip (click to copy) ---- */
+.server-ip {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 9px;
+  margin-top: 12px; padding: 8px 13px;
+  border-radius: var(--r-full);
+  font-family: 'Monocraft', ui-monospace, Consolas, monospace;
+  font-size: 13.5px; font-weight: 600; letter-spacing: .2px;
+  color: var(--accent-text);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line-2));
+  cursor: pointer; user-select: none;
+  box-shadow: 0 0 0 0 var(--accent-soft);
+  transition: transform .12s var(--ease), box-shadow .25s, background .2s, border-color .2s, color .2s;
+  animation: sipGlow 3.4s ease-in-out infinite;
+}
+.server-ip:hover { transform: translateY(-1px); background: color-mix(in srgb, var(--accent) 16%, transparent); border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+.server-ip:active { transform: translateY(0) scale(.97); }
+@keyframes sipGlow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 22%, transparent); }
+  50%      { box-shadow: 0 0 16px 2px color-mix(in srgb, var(--accent) 26%, transparent); }
+}
+.sip-addr { position: relative; z-index: 1; }
+/* copy / check icon swap */
+.sip-ic { position: relative; width: 15px; height: 15px; flex-shrink: 0; color: var(--accent); opacity: .7; transition: opacity .2s; }
+.server-ip:hover .sip-ic { opacity: 1; }
+.sip-ic svg { position: absolute; inset: 0; margin: auto; transition: transform .22s var(--ease), opacity .18s; }
+.sip-ic-check { transform: scale(0) rotate(-25deg); opacity: 0; }
+.server-ip.copied .sip-ic-copy { transform: scale(0) rotate(20deg); opacity: 0; }
+.server-ip.copied .sip-ic-check { transform: scale(1) rotate(0); opacity: 1; }
+.server-ip.copied { color: var(--on-accent); background: var(--accent); border-color: transparent; animation: none; box-shadow: var(--e1); }
+.server-ip.copied .sip-ic { color: var(--on-accent); background: none; }
+/* light sweep on hover */
+.sip-sheen { position: absolute; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(105deg, transparent 30%, color-mix(in srgb, var(--accent) 30%, transparent) 50%, transparent 70%); transform: translateX(-120%); }
+.server-ip:hover .sip-sheen { animation: sipSheen .7s var(--ease); }
+@keyframes sipSheen { to { transform: translateX(120%); } }
+/* floating "copied" toast */
+.sip-toast { position: absolute; left: 50%; top: -6px; z-index: 2; transform: translate(-50%, 0) scale(.8); padding: 3px 9px; border-radius: var(--r-full); font-family: var(--font, inherit); font-size: 10.5px; font-weight: 800; letter-spacing: .3px; color: var(--on-accent); background: var(--accent); box-shadow: var(--e2); opacity: 0; pointer-events: none; }
+.server-ip.copied .sip-toast { animation: sipToast 1.15s var(--ease); }
+@keyframes sipToast {
+  0%   { opacity: 0; transform: translate(-50%, 4px) scale(.8); }
+  20%  { opacity: 1; transform: translate(-50%, -20px) scale(1); }
+  75%  { opacity: 1; transform: translate(-50%, -22px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -30px) scale(.9); }
+}
+/* ---- Server status badge (live TPS + colour dot) ---- */
+.server-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.server-row .server-ip { margin-top: 0; }
+.server-status {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 13px 7px 11px; border-radius: var(--r-full);
+  font-size: 12.5px; font-weight: 650; letter-spacing: .2px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--status, var(--muted)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status, var(--muted)) 34%, var(--line-2));
+  transition: background .3s, border-color .3s, color .3s;
+  --status: var(--muted);
+}
+.ss-dot {
+  position: relative; width: 9px; height: 9px; border-radius: var(--r-full);
+  background: var(--status); flex-shrink: 0;
+  box-shadow: 0 0 7px 0 color-mix(in srgb, var(--status) 70%, transparent);
+}
+/* radar ping ring around the dot */
+.ss-dot::after {
+  content: ''; position: absolute; inset: 0; border-radius: var(--r-full);
+  box-shadow: 0 0 0 0 var(--status);
+  animation: ssPing 2s ease-out infinite;
+}
+@keyframes ssPing {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--status) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.ss-text { color: color-mix(in srgb, var(--text) 82%, var(--status)); white-space: nowrap; }
+/* state colours */
+.server-status.ok      { --status: #4fd488; }
+.server-status.warn    { --status: #e8c14a; }
+.server-status.bad     { --status: #e0553f; }
+.server-status.loading { --status: var(--muted); }
+.server-status.loading .ss-dot::after { animation: none; }
+.server-status.loading .ss-dot { animation: ssBlink 1s ease-in-out infinite; }
+@keyframes ssBlink { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+/* smooth number change */
+.ss-text { transition: color .3s; }
+.server-status.updated { animation: ssBump .4s var(--ease); }
+@keyframes ssBump { 0% { transform: scale(1); } 40% { transform: scale(1.06); } 100% { transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .server-ip, .ss-dot, .ss-dot::after, .server-status { animation: none; }
+}
 .home-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tool-btn { display: flex; align-items: center; gap: 7px; padding: 9px 16px; border-radius: var(--r-full); font-size: 13px; font-weight: 600; color: var(--accent-text); background: transparent; border: 1px solid var(--line-2); transition: background .15s, border-color .15s, transform .1s; }
 .tool-btn:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }

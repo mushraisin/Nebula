@@ -311,7 +311,6 @@ function renderHome() {
   $('rest-label').classList.toggle('hidden', !(featured && hasRest));
   $('stage').classList.toggle('hidden', !hasRest);
   $('car-dots').classList.toggle('hidden', !hasRest);
-  $('home-sub').textContent = has ? `${state.catalog.length} ${plural(state.catalog.length, 'збірка', 'збірки', 'збірок')} у бібліотеці` : 'Обери світ і поринай у гру';
   if (!has) return;
 
   if (featured) renderFeaturedHero($('featured-hero'), featured);
@@ -623,6 +622,53 @@ function logLine(line) { const b = $('console-body'); b.textContent += line + '\
 function showError(text) { $('console').classList.remove('hidden'); logLine('✗ ' + text); }
 $('console-close').onclick = () => $('console').classList.add('hidden');
 $('log-toggle').onclick = () => $('console').classList.toggle('hidden');
+
+/* ---------------- Server IP (click to copy) ---------------- */
+(() => {
+  const chip = $('server-ip');
+  if (!chip) return;
+  let resetT = null;
+  chip.onclick = async () => {
+    const ip = chip.dataset.ip || $('sip-addr').textContent.trim();
+    try { await api.copy(ip); } catch { try { await navigator.clipboard.writeText(ip); } catch { /* ignore */ } }
+    chip.classList.remove('copied');
+    void chip.offsetWidth;        // restart the CSS animations
+    chip.classList.add('copied');
+    clearTimeout(resetT);
+    resetT = setTimeout(() => chip.classList.remove('copied'), 1150);
+  };
+})();
+
+/* ---------------- Server status (live TPS dot) ---------------- */
+(() => {
+  const badge = $('server-status');
+  const chip = $('server-ip');
+  if (!badge || !chip) return;
+  const txt = $('ss-text');
+  // Chip shows the friendly domain (for players to copy); the status probe uses
+  // the real host:port the game actually listens on.
+  const host = '77.42.49.6';
+  const slpPort = 25797;   // Minecraft game port (Server List Ping -> online/players)
+  const httpPort = 25728;  // ServerPulse mod HTTP status port (-> live TPS)
+  const setState = (cls, label) => {
+    badge.classList.remove('loading', 'ok', 'warn', 'bad');
+    badge.classList.add(cls);
+    txt.textContent = label;
+    badge.classList.remove('updated'); void badge.offsetWidth; badge.classList.add('updated');
+  };
+  async function refresh() {
+    try {
+      const s = await api.serverStatus(host, { slpPort, httpPort });
+      if (!s || !s.online) return setState('bad', 'Офлайн');
+      if (typeof s.tps !== 'number') return setState('ok', 'Онлайн');
+      // green 18-20, yellow 13-17, red 0-12
+      const cls = s.tps >= 18 ? 'ok' : s.tps >= 13 ? 'warn' : 'bad';
+      setState(cls, `${s.tps.toFixed(1)} TPS`);
+    } catch { setState('bad', 'Офлайн'); }
+  }
+  refresh();
+  setInterval(refresh, 10000);
+})();
 
 /* ---------------- Add pack ---------------- */
 $('add-pack').onclick = () => { openModal('add-modal'); loadRepoPacks(); };

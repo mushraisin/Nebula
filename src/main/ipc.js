@@ -1,7 +1,7 @@
 // Wires renderer <-> main IPC. Long-running operations report progress by
 // emitting 'nebula:event' messages to the window; the invoke() call resolves
 // with the final result (or throws on error).
-const { app, ipcMain, dialog, shell, BrowserWindow } = require('electron');
+const { app, ipcMain, dialog, shell, clipboard, BrowserWindow } = require('electron');
 const store = require('./store');
 const auth = require('./auth');
 const packs = require('./packs');
@@ -11,6 +11,7 @@ const versions = require('./versions');
 const mods = require('./mods');
 const minecraft = require('./minecraft');
 const discord = require('./discord');
+const serverstatus = require('./serverstatus');
 
 function emit(type, data = {}) {
   const win = BrowserWindow.getAllWindows()[0];
@@ -174,6 +175,12 @@ function register() {
     const p = packs.getInstalled(id);
     if (p?.dir) shell.openPath(p.dir);
     return true;
+  });
+  ipcMain.handle('app:copy', async (_e, text) => { clipboard.writeText(String(text ?? '')); return true; });
+  ipcMain.handle('server:status', async (_e, { host, slpPort, httpPort } = {}) => {
+    if (!host) return { online: false, tps: null };
+    try { return await serverstatus.query(host, { slpPort, httpPort }); }
+    catch { return { online: false, tps: null }; }
   });
   ipcMain.handle('app:openExternal', async (_e, url) => {
     if (/^https?:\/\//i.test(url)) shell.openExternal(url);

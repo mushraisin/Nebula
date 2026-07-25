@@ -36,6 +36,8 @@ contextBridge.exposeInMainWorld('nebula', {
   removePack: (id) => invoke('packs:remove', id),
   openDir: (id) => invoke('packs:openDir', id),
   openExternal: (url) => invoke('app:openExternal', url),
+  copy: (text) => invoke('app:copy', text),
+  serverStatus: (host, opts) => invoke('server:status', { host, ...(opts || {}) }),
   // Profiles
   mcVersions: () => invoke('profiles:mcVersions'),
   createProfile: (opts) => invoke('profiles:create', opts),
