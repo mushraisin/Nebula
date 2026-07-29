@@ -18,8 +18,8 @@
     },
     {
       "id": "project-vi",
-      "name": "Project Vi",
-      "version": "teaser",
+      "name": "Project: \"Vi\"",
+      "version": ".teaser",
       "gameVersion": "",
       "loader": "",
       "mrpack": "g",
