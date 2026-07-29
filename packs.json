@@ -15,6 +15,21 @@
       "changelog": "",
       "featured": true,
       "effect": "embers"
+    },
+    {
+      "id": "project-vi",
+      "name": "Project Vi",
+      "version": "teaser",
+      "gameVersion": "",
+      "loader": "",
+      "mrpack": "g",
+      "summary": "",
+      "icon": "",
+      "description": "",
+      "media": [],
+      "changelog": "",
+      "featured": false,
+      "effect": ""
     }
   ]
 }
